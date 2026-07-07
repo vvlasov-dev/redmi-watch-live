@@ -348,112 +348,6 @@
         </div>
       </sc-if>
 
-      <sc-if value="{{ isSeries }}" hint-placeholder-val="{{ true }}">
-        <div data-screen-label="Series" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
-          <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
-            <div>
-              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);">{{ series.kicker }}</div>
-              <div style="display:flex;align-items:baseline;gap:8px;margin-top:8px;">
-                <span style="font-size:46px;font-weight:600;letter-spacing:-.03em;line-height:1;color:{{ series.colorVar }};">{{ series.big }}</span>
-                <span style="font-size:16px;color:var(--text-3);">{{ series.unit }}</span>
-              </div>
-              <div style="font-size:12.5px;color:var(--text-2);margin-top:8px;">{{ series.sub }}</div>
-            </div>
-            <div style="display:flex;gap:26px;">
-              <sc-for list="{{ series.tiles }}" as="t" hint-placeholder-count="4">
-                <div style="text-align:right;"><div style="{{ t.valStyle }}">{{ t.val }}</div><div style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.05em;margin-top:4px;text-transform:uppercase;">{{ t.label }}</div></div>
-              </sc-for>
-            </div>
-          </div>
-
-          <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-            <div style="height:260px;">{{ series.chart }}</div>
-            <div style="display:flex;justify-content:space-between;font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--border);"><span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span><span>24:00</span></div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:16px;">
-            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:16px;">{{ series.distTitle }}</div>
-              <div style="margin-bottom:14px;">{{ series.distBar }}</div>
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <sc-for list="{{ series.dist }}" as="d" hint-placeholder-count="4">
-                  <div style="display:flex;align-items:center;gap:10px;"><span style="{{ d.dotStyle }}"></span><span style="font-size:12.5px;color:var(--text-2);flex:1;">{{ d.label }}</span><span style="font:600 12.5px 'Geist Mono',monospace;color:var(--text);">{{ d.val }}</span></div>
-                </sc-for>
-              </div>
-            </div>
-            <sc-if value="{{ showInsight }}" hint-placeholder-val="{{ true }}">
-              <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;">
-                <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Инсайт</div>
-                <div style="font-size:13.5px;line-height:1.6;color:var(--text-2);margin-top:14px;">{{ series.insight }}</div>
-                <div style="margin-top:auto;padding-top:18px;font:500 11px 'Geist Mono',monospace;color:var(--text-3);">{{ series.note }}</div>
-              </div>
-            </sc-if>
-          </div>
-        </div>
-      </sc-if>
-
-      <sc-if value="{{ isSleep }}" hint-placeholder-val="{{ true }}">
-        <div data-screen-label="Sleep" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-            <div style="grid-column:span 2;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Прошлая ночь</div>
-              <div style="display:flex;align-items:baseline;gap:8px;margin-top:8px;"><span style="font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--sleep);">{{ sleepTotalLabel }}</span><span style="font-size:14px;color:var(--text-3);">в постели 23:52 → 06:24</span></div>
-              <div style="margin-top:20px;">{{ hypnoEl }}</div>
-              <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:8px;"><span>23:52</span><span>02:00</span><span>04:00</span><span>06:24</span></div>
-            </div>
-            <div style="grid-column:span 2;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Оценка сна</div>
-                <div style="font-size:26px;font-weight:600;letter-spacing:-.02em;">81<span style="font-size:14px;color:var(--text-3);font-weight:500;"> / 100</span></div>
-              </div>
-              <div style="margin-top:18px;">{{ sleepStackBigEl }}</div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px;">
-                <sc-for list="{{ sleepStages }}" as="s" hint-placeholder-count="4">
-                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:11px;"><span style="{{ s.dotStyle }}"></span><div style="flex:1;"><div style="font:600 13px 'Geist Mono',monospace;">{{ s.dur }}</div><div style="font-size:11px;color:var(--text-3);margin-top:1px;">{{ s.label }} · {{ s.pct }}</div></div></div>
-                </sc-for>
-              </div>
-            </div>
-            <div style="grid-column:span 4;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Ср. пульс во сне</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--hr);">56<span style="font-size:13px;color:var(--text-3);font-weight:500;"> уд/мин</span></div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Ср. SpO₂ ночью</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--ox);">96<span style="font-size:13px;color:var(--text-3);font-weight:500;"> %</span></div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Пробуждений</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">2</div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Регулярность</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--vital);">88<span style="font-size:13px;color:var(--text-3);font-weight:500;"> %</span></div></div>
-            </div>
-          </div>
-        </div>
-      </sc-if>
-
-      <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ true }}">
-        <div data-screen-label="Activity" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-            <div style="grid-column:span 1;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;align-items:center;">
-              <div style="align-self:flex-start;font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Кольца</div>
-              <div style="margin:14px 0;">{{ ringsBigEl }}</div>
-              <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
-                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--move);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Шаги</span><span style="font:600 12px 'Geist Mono',monospace;">99%</span></div>
-                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--cal);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Калории</span><span style="font:600 12px 'Geist Mono',monospace;">128%</span></div>
-                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--dist);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Активность</span><span style="font:600 12px 'Geist Mono',monospace;">107%</span></div>
-              </div>
-            </div>
-            <div style="grid-column:span 3;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div><div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Шаги по часам</div><div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-size:32px;font-weight:600;letter-spacing:-.03em;color:var(--move);">{{ stepsNow }}</span><span style="font-size:13px;color:var(--text-3);">из 10 000</span></div></div>
-                <div style="text-align:right;"><div style="font:600 15px 'Geist Mono',monospace;">7.4 км</div><div style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;letter-spacing:.05em;">ДИСТАНЦИЯ</div></div>
-              </div>
-              <div style="height:150px;margin-top:16px;">{{ stepsBigEl }}</div>
-              <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:6px;"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
-            </div>
-            <div style="grid-column:span 4;display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Активн. ккал</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--cal);">640</div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Всего ккал</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">2 180</div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Активность</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--dist);">64 <span style="font-size:12px;color:var(--text-3);font-weight:500;">мин</span></div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Этажи</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">12</div></div>
-              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Vitality</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--vital);">{{ vitalityBig }}</div></div>
-            </div>
-          </div>
-        </div>
-      </sc-if>
-
 
     </div>
   </main>
@@ -746,62 +640,6 @@ class Component extends DCLogic {
     return R('svg',{viewBox:`0 0 ${W} ${H}`,style:{width:'100%',height:'100%',display:'block'}},[grid,conn,dots]);
   }
 
-  navConf(){
-    const L=this.LIVE, st=(L&&L.stats)||{}, H=(L&&L.health)||null, SL=(L&&L.sleep)||null;
-    const hr = L ? (st.hr_cur ? String(st.hr_cur) : '—') : '72';
-    let steps = '9.9к';
-    if(L){ const s=st.steps_now||0; steps = s>=1000 ? (s/1000).toFixed(1).replace('.',',')+'к' : String(s); }
-    const spo2 = H&&H.spo2_avg ? H.spo2_avg+'%' : (L?'—':'97%');
-    const stress = H&&H.stress_avg ? String(H.stress_avg) : (L?'—':'36');
-    let sleepV='6:12';
-    if(L){ const a=SL&&SL.asleep_min; sleepV = a ? (Math.floor(a/60)+':'+String(a%60).padStart(2,'0')) : '—'; }
-    return [
-      ['overview','Обзор','var(--vital)',''],
-      ['hr','Пульс','var(--hr)',hr],
-      ['spo2','Кислород','var(--ox)',spo2],
-      ['sleep','Сон','var(--sleep)',sleepV],
-      ['activity','Активность','var(--move)',steps],
-      ['stress','Стресс','var(--stress)',stress],
-      ['workouts','Тренировки','var(--dist)','3'],
-    ];
-  }
-
-  seriesFor(page){
-    const t=this.theme;
-    const H=this._H||null;
-    const hv=(v,d)=> (H&&v!=null&&v!==0)? String(v) : d;
-    if(page==='hr'){
-      return { kicker:'Пульс за день', big:'72', unit:'уд/мин · средний', colorVar:'var(--hr)',
-        sub:'Покой 52 · максимум 142 · 24 ч мониторинг каждые 10 мин',
-        chart:this.mkArea(this.HR,{color:this.cssHr(),id:'sHr',h:260,min:44,max:150,sw:2.4}),
-        tiles:[ this.tile('52','покой',null),this.tile('72','средний',null),this.tile('142','максимум','var(--hr)'),this.tile('64','вариаб. мин',null) ],
-        distTitle:'Пульсовые зоны', distTitleTime:true,
-        dist:[ this.dz('Покой','13ч 40м','oklch(0.60 0.03 250)'),this.dz('Разминка','7ч 05м','oklch(0.66 0.15 150)'),this.dz('Жиросжигание','1ч 35м','oklch(0.72 0.15 90)'),this.dz('Кардио','28м','oklch(0.68 0.16 50)'),this.dz('Пик','9м','oklch(0.62 0.19 25)') ],
-        distBar:this.mkStack([{v:820,color:'oklch(0.60 0.03 250)'},{v:425,color:'oklch(0.66 0.15 150)'},{v:95,color:'oklch(0.72 0.15 90)'},{v:28,color:'oklch(0.68 0.16 50)'},{v:9,color:'oklch(0.62 0.19 25)'}],{h:14}),
-        insight:'Пульс покоя 52 уд/мин — на 2 удара ниже вашего недельного среднего. Заметный подъём в 18:00 совпал с пробежкой, восстановление до нормы заняло ~14 минут.',
-        note:'МОНИТОРИНГ: КАЖДЫЕ 10 МИН' };
-    }
-    if(page==='spo2'){
-      return { kicker:'Кислород в крови', big:hv(H&&H.spo2_avg,'97'), unit:'% · средний за день', colorVar:'var(--ox)',
-        sub:'Минимум '+hv(H&&H.spo2_min,'95')+'% · измерения каждые 30 мин · норма ≥ 95%',
-        chart:this.mkArea(this.SPO2,{color:this.cssOx(),id:'sOx',h:260,min:90,max:100,sw:2.4}),
-        tiles:[ this.tile(hv(H&&H.spo2_avg,'97'),'средний','var(--ox)'),this.tile(hv(H&&H.spo2_max,'99'),'максимум',null),this.tile(hv(H&&H.spo2_min,'95'),'минимум',null),this.tile('96','ночью',null) ],
-        distTitle:'Распределение сатурации',
-        dist:[ this.dz('≥ 95% — норма','96% времени','oklch(0.64 0.14 235)'),this.dz('90–94% — снижен','4% времени','oklch(0.70 0.14 90)'),this.dz('< 90% — низкий','0% времени','oklch(0.62 0.18 25)') ],
-        distBar:this.mkStack([{v:96,color:'oklch(0.64 0.14 235)'},{v:4,color:'oklch(0.70 0.14 90)'},{v:0.5,color:'oklch(0.62 0.18 25)'}],{h:14}),
-        insight:'Сатурация стабильно держалась в норме. Кратковременное снижение до 95% ночью — типично для глубоких фаз сна и не является отклонением.',
-        note:'ИЗМЕРЕНИЕ: КАЖДЫЕ 30 МИН' };
-    }
-    return { kicker:'Уровень стресса', big:hv(H&&H.stress_avg,'36'), unit:'· средний, норма', colorVar:'var(--stress)',
-      sub:'Мин '+hv(H&&H.stress_min,'14')+' · макс '+hv(H&&H.stress_max,'64')+' · мониторинг весь день',
-      chart:this.mkArea(this.STRESS,{color:this.cssStress(),id:'sStr',h:260,min:0,max:100,sw:2.4}),
-      tiles:[ this.tile(hv(H&&H.stress_avg,'36'),'средний','var(--stress)'),this.tile(hv(H&&H.stress_min,'14'),'минимум',null),this.tile(hv(H&&H.stress_max,'64'),'максимум',null),this.tile('3','пиков',null) ],
-      distTitle:'Состояния за день',
-      dist:[ this.dz('Расслаблен (0–39)','58%','oklch(0.66 0.15 152)'),this.dz('Норма (40–59)','27%','oklch(0.72 0.15 92)'),this.dz('Средний (60–79)','12%','oklch(0.68 0.16 50)'),this.dz('Высокий (80–100)','3%','oklch(0.62 0.19 28)') ],
-      distBar:this.mkStack([{v:58,color:'oklch(0.66 0.15 152)'},{v:27,color:'oklch(0.72 0.15 92)'},{v:12,color:'oklch(0.68 0.16 50)'},{v:3,color:'oklch(0.62 0.19 28)'}],{h:14}),
-      insight:'Основные пики стресса пришлись на утреннее совещание (08:00) и вечернюю тренировку. Дыхательная практика в 22:10 снизила уровень на 40% за 5 минут.',
-      note:'МОНИТОРИНГ: ВЕСЬ ДЕНЬ' };
-  }
 
   cssHr(){ return 'oklch(0.64 0.20 18)'; }
   cssOx(){ return 'oklch(0.60 0.15 235)'; }
@@ -843,7 +681,6 @@ class Component extends DCLogic {
       syncLabel='Связь потеряна · переподключение…'; _dotColor='var(--hr)'; _dotAnim='animation:softpulse 1.1s ease-in-out infinite;';
     }
     const statusDotStyle='width:6px;height:6px;border-radius:50%;flex-shrink:0;background:'+_dotColor+';'+_dotAnim;
-    const titles={overview:'Обзор',hr:'Пульс',spo2:'Кислород в крови',sleep:'Сон',activity:'Активность',stress:'Стресс',workouts:'Тренировки'};
 
     // ---- health history (daily summary) + battery live overrides ----
     const H = (L&&L.health)||null, B=(L&&L.battery)||null;
@@ -861,17 +698,7 @@ class Component extends DCLogic {
     let batteryLabel='68% · ≈9 дн', batteryBarStyle='width:68%;height:100%;background:var(--accent);border-radius:4px;';
     if(B&&B.level!=null){ batteryLabel=B.level+'%'+(B.charging?' · зарядка':''); batteryBarStyle='width:'+B.level+'%;height:100%;background:'+(B.charging?'var(--move)':'var(--accent)')+';border-radius:4px;transition:width .4s;'; }
     else if(L){ batteryLabel='нет данных'; batteryBarStyle='width:0%;height:100%;background:var(--accent);border-radius:4px;'; }
-    // expose live health to seriesFor()
-    this._H = H;
 
-    const navBase='display:flex;align-items:center;gap:11px;width:100%;padding:8px 10px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--text-2);font:500 13px Geist,sans-serif;cursor:pointer;transition:background .12s;';
-    const navActive='border-color:var(--border);background:var(--panel-2);color:var(--text);';
-    const navItems=this.navConf().map(([key,label,dot,value])=>({
-      key,label,value,
-      onClick:()=>this.setState({page:key}),
-      rowStyle: navBase+(page===key? navActive:''),
-      dotStyle: 'width:7px;height:7px;border-radius:2px;flex-shrink:0;background:'+dot+';'+(page===key?'':' opacity:.85;')
-    }));
 
     // sleep derived (live from L.sleep when available)
     const SL=(L&&L.sleep)||null;
@@ -1204,7 +1031,6 @@ class Component extends DCLogic {
       pageTitle:titles[page]||'Обзор',
       hrNow, hrRest, hrMax:hrMaxV, stepsNow, calNow, syncLabel, statusDotStyle, sleepBed, sleepWake,
       vitalityBig, spo2Big, spo2Min, spo2Max, stressBig, batteryLabel, batteryBarStyle,
-      navItems,
       setDark:()=>{try{localStorage.setItem('rw_theme','dark');}catch(e){} this.setState({theme:'dark'});},
       setLight:()=>{try{localStorage.setItem('rw_theme','light');}catch(e){} this.setState({theme:'light'});},
       syncNow:()=>this.syncNow(),
@@ -1258,19 +1084,10 @@ class Component extends DCLogic {
       lightBtnStyle:segBase+'border-left:1px solid var(--border);'+(!darkOn?'background:var(--panel-hi);color:var(--text);':'background:transparent;color:var(--text-3);'),
 
       isOverview:page==='overview',
-      isSeries:(page==='hr'||page==='spo2'||page==='stress'),
-      isSleep:page==='sleep',
-      isActivity:page==='activity',
-      isWorkouts:page==='workouts',
 
       // overview charts
       ringsEl:this.mkRings([{v:fMove,color:RC[0]},{v:fCal,color:RC[1]},{v:fStand,color:RC[2]}],{size:128}),
       goalRows, ...trackFields,
-      hrMiniEl:this.mkArea(this.HR,{color:this.cssHr(),id:'ovHr',h:88,min:44,max:150,sw:2}),
-      spo2MiniEl:this.mkArea(this.SPO2,{color:this.cssOx(),id:'ovOx',h:60,min:90,max:100,sw:2,grid:false}),
-      stepsMiniEl:React.createElement('div',{style:{height:60}}, this.mkBars(this.STEPS,{color:this.cssMove(),h:200})),
-      calMiniEl:this.mkArea(this.CAL,{color:this.cssCal(),id:'ovCal',h:60,min:0,max:130,sw:2,grid:false}),
-      stressMiniEl:this.mkArea(this.STRESS,{color:this.cssStress(),id:'ovStr',h:88,min:0,max:100,sw:2}),
       sleepStackEl:this.mkStack(stackParts,{h:12}),
       sleepTotalLabel:this.fmt(asleep).replace('ч','ч ').replace('  ',' '),
       sleepEstNote:(SL&&SL.est)
@@ -1316,18 +1133,11 @@ class Component extends DCLogic {
       weekStepsVal:this.fmtN(lastNZ(weekSteps)), weekRestVal:String(lastNZ(weekRest)), weekVitVal:String(lastNZ(weekVit)),
 
       // series
-      series:this.seriesFor(page),
 
       // sleep page
       hypnoEl:this.mkSleepWave(sleepSegs,{h:150})||this.mkHypno(sleepSegs,{h:130}),
-      sleepStackBigEl:this.mkStack(stackParts,{h:16}),
       sleepStages:sleepStagesArr,
 
-      // activity
-      ringsBigEl:this.mkRings([{v:0.99,color:this.cssMove()},{v:1.0,color:this.cssCal()},{v:1.0,color:'oklch(0.68 0.12 205)'}],{size:150}),
-      stepsBigEl:this.mkBars(this.STEPS,{h:200, colorAt:(i,v)=> i===18? this.cssHr() : this.cssMove() }),
-
-      // workouts
     };
   }
 }
