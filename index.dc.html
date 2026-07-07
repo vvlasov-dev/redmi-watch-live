@@ -454,44 +454,6 @@
         </div>
       </sc-if>
 
-      <sc-if value="{{ isWorkouts }}" hint-placeholder-val="{{ true }}">
-        <div data-screen-label="Workouts" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
-          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px;">
-            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Бег на улице</div><div style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:6px;">6.14 км · 42:12</div></div>
-                <div style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);text-align:right;">18:04 – 18:46<br>темп 6'52"/км</div>
-              </div>
-              <div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:22px 0 10px 0;">Пульс во время бега</div>
-              <div style="height:150px;">{{ runHrEl }}</div>
-              <div style="display:flex;gap:8px;margin-top:6px;">
-                <span style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);">0'</span>
-                <span style="flex:1;"></span>
-                <span style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);">42'</span>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
-                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--hr);">149</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">СР. ЧСС</div></div>
-                <div><div style="font:600 16px 'Geist Mono',monospace;">168</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">МАКС ЧСС</div></div>
-                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--cal);">498</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">ККАЛ</div></div>
-                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--dist);">6'52"</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">СР. ТЕМП</div></div>
-              </div>
-            </div>
-            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
-              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Сегодня · 3 тренировки</div>
-              <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
-                <sc-for list="{{ workouts }}" as="w" hint-placeholder-count="3">
-                  <div style="display:flex;align-items:center;gap:13px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;">
-                    <span style="{{ w.dotStyle }}"></span>
-                    <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;letter-spacing:-.01em;">{{ w.type }}</div><div style="font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;">{{ w.time }} · {{ w.dur }}</div></div>
-                    <div style="text-align:right;"><div style="font:600 12.5px 'Geist Mono',monospace;">{{ w.dist }}</div><div style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;">{{ w.kcal }} ккал</div></div>
-                  </div>
-                </sc-for>
-              </div>
-              <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-2);">Итого за день</span><span style="font:600 12.5px 'Geist Mono',monospace;">1:05:52 · 586 ккал</span></div>
-            </div>
-          </div>
-        </div>
-      </sc-if>
 
     </div>
   </main>
@@ -502,12 +464,14 @@ class Component extends DCLogic {
   state = { page: 'overview', theme: null };
 
   // ---- data ----
+  // Seed/placeholder series — shown only until the first live /state arrives;
+  // renderVals() overwrites HR/SPO2/STRESS/STEPS/CAL/SLEEP with real data
+  // (see the `this.HR = SD.hr` lines). Not displayed once the watch is connected.
   HR    = [54,53,52,54,53,55,58,64,72,76,74,70,73,78,75,72,74,79,138,112,86,74,66,60];
   SPO2  = [96,96,95,95,96,96,97,98,98,97,98,98,97,98,98,97,98,97,96,97,98,98,97,97];
   STRESS= [22,18,15,14,16,20,28,42,55,48,44,50,58,62,40,38,45,52,64,30,35,40,32,25];
   STEPS = [0,0,0,0,0,120,340,610,880,520,430,760,540,410,300,480,650,720,1520,900,410,220,80,10];
   CAL   = [2,2,2,2,2,6,20,42,60,38,32,52,40,30,24,34,46,52,120,70,30,16,8,3];
-  RUNHR = [112,128,140,146,149,151,150,153,155,152,150,154,158,160,157,155,159,162,160,165,168,150];
   SLEEP = [['awake',6],['light',28],['deep',30],['light',20],['rem',18],['light',32],['deep',26],['light',24],['rem',28],['light',30],['deep',22],['light',20],['rem',24],['light',26],['awake',10],['light',22],['rem',20],['light',24],['deep',14]];
   SLEEPC = { deep:'oklch(0.50 0.13 275)', light:'oklch(0.66 0.13 272)', rem:'oklch(0.70 0.12 205)', awake:'oklch(0.74 0.10 62)' };
 
@@ -959,12 +923,6 @@ class Component extends DCLogic {
     const stagesNote=_noStages?'часы не считали фазы этой ночью — проверь на часах настройку точного мониторинга сна':'';
     const stackParts=[{v:stot.deep,color:this.SLEEPC.deep},{v:stot.light,color:this.SLEEPC.light},{v:stot.rem,color:this.SLEEPC.rem},{v:stot.awake,color:this.SLEEPC.awake}];
 
-    const workouts=[
-      {type:'Бег на улице',time:'18:04',dur:'42:12',dist:'6.14 км',kcal:498,color:'var(--hr)'},
-      {type:'Ходьба',time:'12:36',dur:'18:40',dist:'1.28 км',kcal:82,color:'var(--move)'},
-      {type:'Дыхание',time:'22:10',dur:'05:00',dist:'—',kcal:6,color:'var(--ox)'},
-    ].map(w=>({...w, dotStyle:'width:10px;height:34px;border-radius:5px;flex-shrink:0;background:'+w.color+';'}));
-
     const darkOn=this.theme==='dark';
     const segBase='padding:6px 13px;font:500 12px Geist;cursor:pointer;border:none;';
 
@@ -1370,8 +1328,6 @@ class Component extends DCLogic {
       stepsBigEl:this.mkBars(this.STEPS,{h:200, colorAt:(i,v)=> i===18? this.cssHr() : this.cssMove() }),
 
       // workouts
-      runHrEl:this.mkArea(this.RUNHR,{color:this.cssHr(),id:'runHr',h:150,min:100,max:175,sw:2.2}),
-      workouts,
     };
   }
 }
