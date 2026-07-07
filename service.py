@@ -171,6 +171,10 @@ def on_device_state(st):
     dashboard.push_device_state(st)
 
 
+def on_hr_config(cfg):
+    dashboard.push_hr_config(cfg)
+
+
 def on_sleep(sleep):
     dashboard.push_sleep(sleep)
     log("sleep: asleep=%smin deep=%s light=%s rem=%s awake=%s stages=%s" % (
@@ -235,6 +239,11 @@ def _health_monitor():
         try:
             if not LIVE:
                 continue
+            # during the DARK sleep window we deliberately stop streaming, so
+            # "no data" is expected, not a fault — don't restart.
+            if not dashboard.stream_allowed():
+                grace = time.time() + 600
+                continue
             last = dashboard.S.get("latest", {}).get("ts") or 0
             if last:
                 grace = max(grace, last + 240)
@@ -257,8 +266,10 @@ while True:
         cl = c.LiveClient(com, KEY, on_sample=on_sample, on_battery=on_battery,
                           on_daily=on_daily, on_sync=on_sync, on_sleep=on_sleep,
                           on_details=on_details, on_device_state=on_device_state,
+                          on_hr_config=on_hr_config,
                           should_sync=dashboard.take_sync_request,
                           sync_gate=dashboard.sync_allowed,
+                          stream_gate=dashboard.stream_allowed,
                           take_notifications=dashboard.take_notifications,
                           take_commands=dashboard.take_commands,
                           capture_dir=os.path.join(HERE, "captures"),

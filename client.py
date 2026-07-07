@@ -48,6 +48,48 @@ def build_battery_query() -> bytes:
     return mp.f_varint(1, 2) + mp.f_varint(2, 1)
 
 
+def build_hr_config_get() -> bytes:
+    # Command{ type=8 (Health), subtype=10 (CMD_CONFIG_HEART_RATE_GET) }
+    return mp.f_varint(1, 8) + mp.f_varint(2, 10)
+
+
+def build_hr_config_set(cfg) -> bytes:
+    # Command{ type=8, subtype=11, health.heartRate=HeartRate{...} } — send the
+    # FULL message (partial sets reset omitted fields). advancedMonitoring.enabled
+    # is the watch's sleep-stage (REM/deep) detection toggle (GB pref sleepDetection).
+    hr = b""
+    hr += mp.f_varint(1, 1 if cfg.get("disabled") else 0)          # disabled
+    hr += mp.f_varint(2, int(cfg.get("interval", 1)))               # interval 0 smart/1/10/30
+    if cfg.get("alarm_high_thr"):
+        hr += mp.f_varint(3, 1 if cfg.get("alarm_high_en") else 0)
+        hr += mp.f_varint(4, int(cfg["alarm_high_thr"]))
+    hr += mp.f_message(5, mp.f_varint(1, 1 if cfg.get("advanced") else 0))   # AdvancedMonitoring.enabled
+    hr += mp.f_varint(7, 1)                                          # unknown7=1
+    if "alarm_low_thr" in cfg and cfg.get("alarm_low_thr"):
+        hr += mp.f_message(8, mp.f_varint(1, 1 if cfg.get("alarm_low_en") else 0)
+                              + mp.f_varint(2, int(cfg["alarm_low_thr"])))
+    hr += mp.f_varint(9, int(cfg.get("breathing", 1)))              # breathingScore 1 on/2 off
+    health = mp.f_message(8, hr)                                     # Health.heartRate
+    return mp.f_varint(1, 8) + mp.f_varint(2, 11) + mp.f_message(10, health)
+
+
+def parse_hr_config(d) -> dict:
+    health = mp.get1(d, 10, b"")
+    hd = mp.decode(health) if health else {}
+    hr = mp.get1(hd, 8, b"")
+    h = mp.decode(hr) if hr else {}
+    adv = mp.get1(h, 5)
+    adv_en = None
+    if adv is not None:
+        adv_en = mp.get1(mp.decode(adv), 1) == 1
+    return {
+        "disabled": mp.get1(h, 1) == 1,
+        "interval": mp.get1(h, 2),
+        "advanced": adv_en,
+        "breathing": mp.get1(h, 9),
+    }
+
+
 def build_device_state_get() -> bytes:
     # Command{ type=2 (System), subtype=78 (CMD_DEVICE_STATE_GET) }
     # watch replies (subtype 79) with System.deviceState{ sleepState, wearingState, ... }
@@ -140,7 +182,8 @@ def build_delete_alarms(ids) -> bytes:
 class LiveClient:
     def __init__(self, port, auth_key, on_sample=None, on_battery=None,
                  on_daily=None, on_sync=None, on_sleep=None, on_details=None,
-                 on_device_state=None, should_sync=None, sync_gate=None,
+                 on_device_state=None, on_hr_config=None, should_sync=None, sync_gate=None,
+                 stream_gate=None,
                  take_notifications=None, take_commands=None, capture_dir=None,
                  sync_interval=1800, live=True, debug=False):
         self.port_name = port
@@ -152,6 +195,11 @@ class LiveClient:
         self.on_sleep = on_sleep or (lambda s: None)
         self.on_details = on_details or (lambda d: None)
         self.on_device_state = on_device_state or (lambda st: None)
+        self.on_hr_config = on_hr_config or (lambda c: None)
+        self._hr_cfg = {}
+        self.stream_gate = stream_gate or (lambda: True)   # False = go dark (sleep)
+        self._realtime_on = True
+        self.last_kalive = 0
         self.last_devstate = 0
         self.should_sync = should_sync or (lambda: False)  # manual-sync flag check
         self.sync_gate = sync_gate or (lambda: True)       # False = quiet night, no auto-syncs
@@ -239,6 +287,20 @@ class LiveClient:
         elif kind == "cue":
             self._send_command(build_gentle_cue(), is_auth=False)
             log("cue: gentle notification buzz")
+        elif kind == "hr_config_get":
+            self._send_command(build_hr_config_get(), is_auth=False)
+            log("hr_config: requested current config")
+        elif kind == "advanced_on":
+            # enable sleep-stage (REM/deep) detection + frequent HR sampling,
+            # preserving the rest of the last-read config
+            cfg = dict(self._hr_cfg)
+            cfg["advanced"] = True
+            cfg["interval"] = 1
+            if cfg.get("breathing") in (None, 0):
+                cfg["breathing"] = 1
+            self._send_command(build_hr_config_set(cfg), is_auth=False)
+            log("hr_config: SET advancedMonitoring=ON interval=1 (was advanced=%s)"
+                % self._hr_cfg.get("advanced"))
         elif kind == "alarm":
             hour = int(spec.get("hour", 7))
             minute = int(spec.get("minute", 0))
@@ -323,8 +385,19 @@ class LiveClient:
                 # nominally open (half-open) — nothing errors, so force a reconnect
                 # when data stops. This is what the outer service loop retries on.
                 now = time.time()
-                if self.authenticated and now - self.last_rx > 30:
-                    log("link stalled (no data 30s) — reconnecting")
+                # during the DARK sleep window we intentionally stop streaming, so
+                # silence is EXPECTED — verify the link with a cheap device-state
+                # ping (no HR streaming) instead of treating quiet as a stall.
+                dark = self.authenticated and not self.stream_gate()
+                if dark and now - self.last_kalive > 60:
+                    self.last_kalive = now
+                    try:
+                        self._send_command(build_device_state_get(), is_auth=False)
+                    except Exception:
+                        pass
+                stall_limit = 180 if dark else 30
+                if self.authenticated and now - self.last_rx > stall_limit:
+                    log("link stalled (no data %ds) — reconnecting", stall_limit)
                     self.running = False
                     break
                 if not self.authenticated and now - connect_ts > 20:
@@ -333,11 +406,23 @@ class LiveClient:
                     break
                 # keep realtime alive — but DON'T spam: re-arm only when the
                 # stream actually went quiet (blind 10s re-arm 24/7 is suspected
-                # of stressing the watch firmware into weekly reboots)
-                if (self.authenticated and self.live
+                # of stressing the watch firmware into weekly reboots).
+                # And go DARK during deep sleep: while streaming realtime the
+                # watch (advancedMonitoring is ON, confirmed) still can't build
+                # REM/deep stages — likely because we hog its HR sensor. Stop
+                # streaming so it runs its own sleep-HR analysis; re-arm near wake.
+                if not self.stream_gate() and self._realtime_on:
+                    try:
+                        self._send_command(build_disable_realtime(), is_auth=False)
+                    except Exception:
+                        pass
+                    self._realtime_on = False
+                    log("realtime: OFF (sleep — leaving the watch to stage REM itself)")
+                if (self.authenticated and self.live and self.stream_gate()
                         and now - self.last_rx > 12
                         and time.time() - self.last_arm >= 15):
                     self.last_arm = time.time()
+                    self._realtime_on = True
                     try:
                         self._send_command(build_enable_realtime(), is_auth=False)
                     except Exception:
@@ -537,6 +622,16 @@ class LiveClient:
                 log("icon: upload ack resume=%s chunkSize=%s", resume, self._upload_chunk)
                 self._do_upload(resume)
         elif ctype == 8:  # health
+            if subtype == 10:  # heart-rate config GET response
+                cfg = parse_hr_config(d)
+                self._hr_cfg = cfg
+                log("HR config: advancedMonitoring(REM/deep)=%s interval=%s breathing=%s disabled=%s"
+                    % (cfg["advanced"], cfg["interval"], cfg["breathing"], cfg["disabled"]))
+                self.on_hr_config(cfg)
+                return
+            if subtype == 11:  # heart-rate config SET ack
+                log("HR config SET ack")
+                return
             if subtype in (1, 2):  # activity fetch today / past -> list of file IDs
                 health = mp.get1(d, 10, b"")
                 hd = mp.decode(health) if health else {}

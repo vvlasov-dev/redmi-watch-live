@@ -43,6 +43,8 @@ S = {
     "sleeps": [],               # recent nights (for sleep-consistency insights)
     "device_state": None,       # live {asleep, worn, sleep_state, wearing}
     "device_state_ts": 0,
+    "hr_config": None,          # {advanced, interval, breathing, disabled}
+    "hr_config_ts": 0,
     # sleep-engine harvester: verify what the watch exposes mid-sleep
     "sleep_session": {"active": False, "start_ts": 0, "last_harvest": 0,
                       "probes": [], "cues_sent": 0},
@@ -215,6 +217,12 @@ def push_details(details):
         _record_sleep_probe("details", {"minutes": len(mins),
                                         "last_min_ts": last.get("ts"),
                                         "last_hr": last.get("hr")})
+
+
+def push_hr_config(cfg):
+    with _lock:
+        S["hr_config"] = cfg
+        S["hr_config_ts"] = int(time.time())
 
 
 def push_device_state(st):
@@ -440,6 +448,39 @@ def sync_allowed():
         return not sess.get("sleeping_now")
 
 
+def stream_allowed():
+    """Realtime HR streaming gate — CLOCK based (robust, no dependency on the
+    sample-fed estimate). Go DARK for the middle of the night so the watch runs
+    its OWN sleep-HR analysis (advancedMonitoring is ON, but streaming seems to
+    starve its stage detection → has_rem=0). Stream the first 25 min (capture
+    onset) and after 5.5 h (the smart-alarm / wake window)."""
+    with _lock:
+        sess = S["sleep_session"]
+        if not sess.get("active") or not _is_night(sess):
+            return True
+        wk = sess.get("wake") or {}
+        if wk.get("night_over") or wk.get("firing"):
+            return True
+        start = sess.get("start_ts") or 0
+        now = time.time()
+        if not start:
+            return True
+        if now - start > 5.5 * 3600:
+            return True                       # wake / alarm window
+        ac = sess.get("asleep_confirmed_ts")  # set by the engine once actually asleep
+        if not ac:
+            return True                       # awake / not asleep yet — keep streaming
+        return now - ac <= 25 * 60            # dark after 25 min of confirmed sleep
+
+
+def _is_night(sess):
+    st = sess.get("start_ts") or 0
+    if not st:
+        return False
+    h = time.localtime(st).tm_hour
+    return h >= 21 or h <= 6
+
+
 def take_sync_request():
     with _lock:
         p = _sync_req["pending"]
@@ -632,6 +673,7 @@ def snapshot():
             "sleep": _merged_night() or S["sleep"],
             "device_state": S["device_state"],
             "device_state_ts": S["device_state_ts"],
+            "hr_config": S["hr_config"],
             "lucid": LUCID["snapshot"](),
             "sleep_session": {"active": S["sleep_session"]["active"],
                               "start_ts": S["sleep_session"]["start_ts"],
@@ -685,6 +727,15 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if self.path.startswith("/cue"):
                 queue_command({"kind": "cue"})
+                self._send(json.dumps({"ok": True}))
+                return
+            if self.path.startswith("/health/hrcfg_get"):
+                queue_command({"kind": "hr_config_get"})
+                self._send(json.dumps({"ok": True}))
+                return
+            if self.path.startswith("/health/advanced_on"):
+                queue_command({"kind": "hr_config_get"})   # refresh first
+                queue_command({"kind": "advanced_on"})
                 self._send(json.dumps({"ok": True}))
                 return
             if self.path.startswith("/lucid/on"):

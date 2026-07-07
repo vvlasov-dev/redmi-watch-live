@@ -361,6 +361,11 @@ def _tick():
     # quiet-night sync gate only for real overnight sessions — a daytime test
     # session sitting quietly must not block data collection
     sess["sleeping_now"] = bool(est) and _is_night_session(sess, now)
+    if sess["sleeping_now"] and not sess.get("asleep_confirmed_ts"):
+        # first confirmed sleep — after this the realtime stream may go dark so
+        # the watch stages REM itself (dashboard.stream_allowed reads this)
+        sess["asleep_confirmed_ts"] = now
+        dashboard._save_sleep_session()
     hr_pts = get_night_hr(now, sess.get("start_ts") or now)
     if not hr_pts:
         hr_pts = [[m.get("ts"), m.get("hr")] for m in (dashboard.S.get("day_minutes") or [])
