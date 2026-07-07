@@ -1,0 +1,19 @@
+#!/bin/sh
+# Guardrail: block a commit if the test suite is red. Enforcement, not a request.
+# Install once (from the repo root):
+#     git config core.hooksPath hooks
+# (or copy this file to .git/hooks/pre-commit and chmod +x)
+
+echo "pre-commit: running test suite..."
+if command -v py >/dev/null 2>&1; then PY=py; else PY=python; fi
+
+if ! "$PY" run_tests.py >/tmp/rwlive_tests.log 2>&1; then
+  echo ""
+  echo "  COMMIT BLOCKED — tests failed:"
+  tail -20 /tmp/rwlive_tests.log | sed 's/^/    /'
+  echo ""
+  echo "  Fix them, or bypass intentionally with:  git commit --no-verify"
+  exit 1
+fi
+echo "pre-commit: tests green."
+exit 0

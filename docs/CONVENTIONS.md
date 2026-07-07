@@ -105,3 +105,20 @@ Don't let the author review the author. Use `/review` (adversarial reviewer
 subagent) before merging anything non-trivial — its job is to break the change
 against this project's known failure modes (data-honesty, byte-exact parsing,
 engine edge cases, night-safety), not to praise it.
+
+## 10. Working agentically on this repo (setup)
+
+The workflow only auto-loads when the agent's working directory is this repo.
+
+- **Start the session from the project root** — run `dev.bat` (or launch Claude
+  Code / Cursor with the project folder open). Only then do `CLAUDE.md`,
+  `/plan`, `/review`, `.cursor/rules`, and the reviewer subagent apply.
+  Launching from elsewhere loads only the global `~/.claude` config.
+- **The loop:** `/plan` → confirm → build → `python run_tests.py` → `/review` →
+  fix → run the Definition of Done checklist (§7) → commit.
+- **Enforcement (opt-in):** `git config core.hooksPath hooks` installs the
+  `pre-commit` guard that blocks a commit while tests are red. `deploy.ps1`
+  already gates deploys on the same suite. Instructions ask; hooks + CI enforce.
+- **Deploy safely:** HTML-only changes → copy `index.dc.html` to the runtime
+  dir (no restart). Python changes → `deploy.ps1`. **Never restart during a
+  live sleep session** (§5).
