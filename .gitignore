@@ -1,0 +1,27 @@
+# secrets (device auth key) — use config.example.json instead
+config.json
+
+# personal biometric data — NEVER push these publicly
+history.db
+history.db-shm
+history.db-wal
+.sleep_session.json
+service.log
+service.log.1
+service.log.2
+
+# watch-notify runtime state
+.watch_notify_last
+.watch_summary
+
+# editor / stray artifacts
+*.myedit
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# captures/*.bin are real-hardware test fixtures (~57KB), KEPT so parser tests
+# run on a fresh clone. They hold a few real HR/sleep bytes — sanitize or drop
+# before making the repo public if that matters.

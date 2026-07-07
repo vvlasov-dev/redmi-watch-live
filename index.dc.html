@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000000; --panel:#0a0a0a; --panel-2:#111111; --panel-hi:#161616;
+    --border:#1e1e1e; --border-2:#2a2a2a;
+    --text:#ededed; --text-2:#9a9a9a; --text-3:#5e5e5e;
+    --grid:rgba(255,255,255,.055); --track:rgba(255,255,255,.08);
+    --hr:oklch(0.64 0.20 18); --ox:oklch(0.66 0.14 235); --sleep:oklch(0.64 0.15 285);
+    --move:oklch(0.70 0.16 152); --cal:oklch(0.74 0.15 62); --stress:oklch(0.70 0.17 34);
+    --dist:oklch(0.68 0.12 205); --vital:oklch(0.72 0.16 130);
+    --accent:oklch(0.62 0.19 253);
+  }
+  [data-accent="green"]{ --accent:oklch(0.66 0.16 152); }
+  [data-accent="mono"]{ --accent:var(--text); }
+  [data-theme="light"]{
+    --bg:#e9ecf1; --panel:#ffffff; --panel-2:#f4f6f9; --panel-hi:#e7eaf0;
+    --border:#dde1e8; --border-2:#c8ced8;
+    --text:#12151a; --text-2:#4c525b; --text-3:#7b828d;
+    --grid:rgba(20,28,45,.08); --track:rgba(20,28,45,.10);
+    --hr:oklch(0.56 0.21 18); --ox:oklch(0.53 0.15 235); --sleep:oklch(0.53 0.17 285);
+    --move:oklch(0.55 0.16 152); --cal:oklch(0.58 0.14 70); --stress:oklch(0.58 0.19 34);
+    --dist:oklch(0.52 0.13 205); --vital:oklch(0.55 0.16 145);
+  }
+  [data-theme="light"] [data-screen-label="Overview"]>div:not([style*="display:grid"]){
+    box-shadow:0 1px 2px rgba(20,28,45,.04),0 4px 16px rgba(20,28,45,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:9px;border:3px solid var(--bg);background-clip:padding-box}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes softpulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" data-accent="{{ accent }}" style="display:flex;height:100vh;width:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Geist,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'ss01','cv01';">
+
+  <main style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+    <header style="height:64px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(8px);">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(150deg,var(--panel-hi),var(--panel));border:1px solid var(--border-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5px;flex-shrink:0;">
+          <div style="width:7px;height:3px;border-radius:1.5px;background:var(--text-3);"></div>
+          <div style="width:13px;height:14px;border-radius:4.5px;border:1.5px solid var(--text-2);background:color-mix(in oklab, var(--move) 25%, transparent);"></div>
+          <div style="width:7px;height:3px;border-radius:1.5px;background:var(--text-3);"></div>
+        </div>
+        <div style="min-width:0;">
+          <h1 style="margin:0;font-size:15.5px;font-weight:600;letter-spacing:-.02em;line-height:1.15;">Redmi Watch 5 Active</h1>
+          <div style="display:flex;align-items:center;gap:7px;font:500 11px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;"><span style="{{ statusDotStyle }}"></span>{{ syncLabel }}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div style="display:flex;flex-direction:column;gap:5px;min-width:130px;">
+          <div style="display:flex;justify-content:space-between;font:600 9.5px 'Geist Mono',monospace;letter-spacing:.08em;color:var(--text-3);"><span>БАТАРЕЯ</span><span style="color:var(--text-2);">{{ batteryLabel }}</span></div>
+          <div style="height:5px;border-radius:4px;background:var(--track);overflow:hidden;"><div style="{{ batteryBarStyle }}"></div></div>
+        </div>
+        <span style="font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);white-space:nowrap;">{{ syncAgo }}</span>
+        <button onClick="{{ syncNow }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">{{ syncBtnLabel }}</button>
+        <button onClick="{{ exportCsv }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">⬇ CSV</button>
+        <div style="display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+          <button onClick="{{ setDark }}" style="{{ darkBtnStyle }}">Тёмная</button>
+          <button onClick="{{ setLight }}" style="{{ lightBtnStyle }}">Светлая</button>
+        </div>
+      </div>
+    </header>
+
+    <div style="flex:1;overflow-y:auto;padding:26px;">
+
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Overview" style="max-width:1440px;margin:0 auto;animation:fadeUp .4s ease both;display:grid;grid-template-columns:repeat(12,1fr);gap:16px;">
+
+          <!-- HERO: heart rate over the day -->
+          <div style="grid-column:span 8;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:24px 26px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <span style="font-size:12.5px;font-weight:600;color:var(--text-2);">Пульс за день</span>
+                  <div style="display:flex;gap:4px;">
+                    <button onClick="{{ zoom1h }}" style="{{ zoomBtn }}" style-hover="color:var(--text);">1ч</button>
+                    <button onClick="{{ zoom6h }}" style="{{ zoomBtn }}" style-hover="color:var(--text);">6ч</button>
+                    <button onClick="{{ zoomDay }}" style="{{ zoomBtn }}" style-hover="color:var(--text);">Сутки</button>
+                  </div>
+                  <span style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);">или протяни мышью для участка</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:9px;margin-top:11px;">
+                  <span style="font-size:54px;font-weight:600;letter-spacing:-.035em;line-height:.9;color:var(--hr);">{{ hrNow }}</span>
+                  <span style="font-size:14px;color:var(--text-3);">уд/мин · {{ hrLabel }}</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:26px;text-align:right;">
+                <div><div style="font:600 19px 'Geist Mono',monospace;">{{ hrRest }}</div><div style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.06em;margin-top:4px;">ПОКОЙ</div></div>
+                <div><div style="font:600 19px 'Geist Mono',monospace;">{{ hrAvgV }}</div><div style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.06em;margin-top:4px;">СРЕДНИЙ</div></div>
+                <div><div style="font:600 19px 'Geist Mono',monospace;color:var(--hr);">{{ hrMax }}</div><div style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.06em;margin-top:4px;">МАКС</div></div>
+              </div>
+            </div>
+            <div style="height:200px;margin-top:16px;">{{ hrHeroEl }}</div>
+            <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:4px;"><sc-for list="{{ hrAxis }}" as="a" hint-placeholder-count="5"><span>{{ a.t }}</span></sc-for></div>
+          </div>
+
+          <!-- Activity rings + goal progress -->
+          <div style="grid-column:span 4;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Активность · цели дня</div><div style="display:flex;align-items:baseline;gap:5px;"><span style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);">vitality</span><span style="font:600 16px 'Geist Mono',monospace;color:oklch(0.74 0.13 200);">{{ vitalityBig }}</span></div></div>
+            <div style="display:flex;align-items:center;gap:22px;margin-top:16px;">
+              <div style="flex-shrink:0;">{{ ringsEl }}</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:15px;min-width:0;">
+                <sc-for list="{{ goalRows }}" as="g" hint-placeholder-count="3">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="{{ g.dotStyle }}"></span>
+                      <span style="font-size:12px;color:var(--text-2);flex:1;">{{ g.label }}</span>
+                      <span style="font:600 12px 'Geist Mono',monospace;">{{ g.val }}</span>
+                      <span style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);">/ {{ g.goal }}</span>
+                    </div>
+                    <div style="height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:7px;"><div style="{{ g.barStyle }}"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="margin-top:auto;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-end;">
+              <div><div style="font:600 19px 'Geist Mono',monospace;">{{ activeMin }}<span style="font-size:12px;color:var(--text-3);font-weight:500;"> мин</span></div><div style="font-size:11px;color:var(--text-3);margin-top:4px;">активность сегодня</div></div>
+              <div style="text-align:right;"><div style="font:600 19px 'Geist Mono',monospace;">{{ standingH }}<span style="font-size:12px;color:var(--text-3);font-weight:500;"> ч</span></div><div style="font-size:11px;color:var(--text-3);margin-top:4px;">часов, когда вставал</div></div>
+            </div>
+          </div>
+
+          <!-- Dense stats band -->
+          <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-wrap:wrap;overflow:hidden;">
+            <sc-for list="{{ stats }}" as="s" hint-placeholder-count="8">
+              <div style="flex:1;min-width:130px;padding:16px 18px;border-right:1px solid var(--border);">
+                <div style="font-size:11px;color:var(--text-3);letter-spacing:.01em;">{{ s.label }}</div>
+                <div style="{{ s.valStyle }}">{{ s.val }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Insights: personal deltas vs your own baseline -->
+          <sc-if value="{{ hasInsights }}" hint-placeholder-val="{{ true }}">
+            <div style="grid-column:span 12;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">
+              <sc-for list="{{ insightCards }}" as="ic" hint-placeholder-count="4">
+                <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:17px 19px;">
+                  <div style="font:600 9.5px 'Geist Mono',monospace;letter-spacing:.09em;color:var(--text-3);">{{ ic.label }}</div>
+                  <div style="display:flex;align-items:baseline;gap:7px;margin-top:9px;flex-wrap:wrap;">
+                    <span style="font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1;">{{ ic.big }}</span>
+                    <span style="font-size:11px;color:var(--text-3);">{{ ic.unit }}</span>
+                    <span style="{{ ic.chipStyle }}">{{ ic.delta }}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:var(--text-3);line-height:1.45;margin-top:8px;">{{ ic.phrase }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- HR by hour -->
+          <div style="grid-column:span 8;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Пульс по часам</div><div style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);">диапазон мин–макс · наведи на столбик</div></div>
+            <div style="height:130px;margin-top:16px;">{{ hrByHourEl }}</div>
+            <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:4px;"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+          </div>
+
+          <!-- Time in HR zones -->
+          <div style="grid-column:span 4;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;display:flex;flex-direction:column;">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Время в зонах пульса</div>
+            <div style="margin-top:16px;">{{ zoneStackEl }}</div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ zoneRows }}" as="z" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:10px;"><span style="{{ z.dotStyle }}"></span><span style="font-size:12.5px;color:var(--text-2);flex:1;">{{ z.label }}</span><span style="font:600 12px 'Geist Mono',monospace;color:var(--text);">{{ z.val }}</span><span style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);width:38px;text-align:right;">{{ z.pct }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Steps by hour -->
+          <div style="grid-column:span 5;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Шаги по часам</div><div style="font:600 15px 'Geist Mono',monospace;color:var(--move);">{{ stepsNow }}</div></div>
+            <div style="height:130px;margin-top:16px;">{{ stepsHourEl }}</div>
+            <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:4px;"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+          </div>
+
+          <!-- Stress -->
+          <div style="grid-column:span 4;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div><div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Стресс за день</div><div style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;">{{ stressMeasures }}</div></div><div style="font:600 22px 'Geist Mono',monospace;color:var(--stress);">{{ stressBig }}</div></div>
+            <div style="height:118px;margin-top:16px;">{{ stressDayEl }}</div>
+            <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:4px;"><span>00:00</span><span>08:00</span><span>16:00</span><span>24:00</span></div>
+          </div>
+
+          <!-- SpO2 -->
+          <div style="grid-column:span 3;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12.5px;font-weight:600;color:var(--text-2);">SpO₂</div><div style="display:flex;align-items:baseline;gap:3px;"><span style="font:600 22px 'Geist Mono',monospace;color:var(--ox);">{{ spo2Big }}</span><span style="font-size:12px;color:var(--text-3);">%</span></div></div>
+            <div style="height:118px;margin-top:16px;">{{ spo2DayEl }}</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:8px;">мин {{ spo2Min }}% · макс {{ spo2Max }}% · {{ spo2Measures }}</div>
+          </div>
+
+          <!-- Alarm + vibrate (commands to the watch) -->
+          <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-right:4px;">Будильник и вибро</div>
+            <input type="time" id="rw_alarm_time" style="background:var(--panel-2);border:1px solid var(--border);border-radius:9px;color:var(--text);font:600 14px 'Geist Mono',monospace;padding:8px 11px;">
+            <select id="rw_alarm_repeat" style="background:var(--panel-2);border:1px solid var(--border);border-radius:9px;color:var(--text);font:500 12px Geist;padding:9px 11px;cursor:pointer;">
+              <option value="once">Разово</option>
+              <option value="daily">Каждый день</option>
+              <option value="weekdays">Будни</option>
+              <option value="weekends">Выходные</option>
+            </select>
+            <button onClick="{{ setAlarm }}" style="{{ primBtnStyle }}" style-hover="filter:brightness(1.1);">Поставить будильник</button>
+            <button onClick="{{ deleteAlarms }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">Удалить все</button>
+            <span style="width:1px;height:22px;background:var(--border);"></span>
+            <button onClick="{{ gentleCue }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">Мягкий сигнал (сон)</button>
+            <button onClick="{{ vibrate }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">Поиск часов (громко)</button>
+            <button onClick="{{ stopVibrate }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">Стоп</button>
+            <span style="font:500 12px 'Geist Mono',monospace;color:var(--move);flex:1;text-align:right;min-width:120px;">{{ alarmMsg }}</span>
+          </div>
+
+          <!-- Sleep helper -->
+          <div style="{{ sleepPanelStyle }}">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+              <div style="width:42px;height:42px;border-radius:13px;background:color-mix(in oklab, var(--sleep) 14%, var(--panel-2));display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <div style="width:17px;height:17px;border-radius:50%;box-shadow:5px 3.5px 0 0 var(--sleep);transform:rotate(-18deg);margin-right:5px;margin-top:-3px;"></div>
+              </div>
+              <div style="min-width:200px;">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:14.5px;font-weight:600;letter-spacing:-.01em;">Помощник сна</span><span style="{{ sleepDotStyle }}"></span></div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:3px;">{{ sleepHumanStatus }}</div>
+              </div>
+              <div style="flex:1;"></div>
+              <button onClick="{{ lucidToggle }}" style="{{ lucidPillStyle }}" style-hover="filter:brightness(1.08);">
+                <span style="{{ lucidDotStyle }}"></span><span style="margin-left:8px;">{{ lucidPillLabel }}</span>
+              </button>
+              <button onClick="{{ sleepToggle }}" style="{{ sleepBtnStyle }}" style-hover="filter:brightness(1.08);">{{ sleepBtnLabel }}</button>
+            </div>
+            <div style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);margin-top:10px;">{{ wakeLine }}</div>
+            <sc-if value="{{ hasNightOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:18px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+                  <span style="font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);">{{ nightTitle }}</span>
+                  <span style="font:500 10.5px 'Geist Mono',monospace;color:var(--sleep);">{{ lucidShort }}</span>
+                </div>
+                <div style="height:110px;">{{ nightEl }}</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasProbes }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px;">
+                <button onClick="{{ toggleLog }}" style="background:none;border:none;padding:0;font:500 11px 'Geist Mono',monospace;color:var(--text-3);cursor:pointer;" style-hover="color:var(--text-2);">{{ journalLabel }}</button>
+                <sc-if value="{{ showNightInLog }}" hint-placeholder-val="{{ false }}">
+                  <div style="height:100px;margin-top:10px;">{{ nightEl }}</div>
+                </sc-if>
+                <sc-if value="{{ showLog }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11.5px;color:var(--text-3);margin-top:9px;">{{ sleepProbeSummary }} · {{ devLabel }}</div>
+                  <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">
+                    <sc-for list="{{ probeRows }}" as="p" hint-placeholder-count="3">
+                      <div style="display:flex;gap:12px;font:500 11.5px 'Geist Mono',monospace;">
+                        <span style="color:var(--text-3);flex-shrink:0;">{{ p.tm }}</span>
+                        <span style="color:var(--text-2);">{{ p.t }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- Trends: 7д / 30д / 12м -->
+          <sc-if value="{{ hasWeek }}" hint-placeholder-val="{{ true }}">
+            <div style="grid-column:span 12;display:flex;align-items:center;gap:8px;margin:-4px 0;">
+              <span style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;color:var(--text-3);">ТРЕНДЫ</span>
+              <button onClick="{{ p7 }}" style="{{ p7Style }}">7д</button>
+              <button onClick="{{ p30 }}" style="{{ p30Style }}">30д</button>
+              <button onClick="{{ p12 }}" style="{{ p12Style }}">12м</button>
+            </div>
+            <div style="grid-column:span 12;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 22px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12px;font-weight:600;color:var(--text-2);">{{ trendTitle }}</div><div style="font:600 16px 'Geist Mono',monospace;color:var(--move);">{{ weekStepsVal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:3px;margin-top:12px;height:76px;">
+                  <sc-for list="{{ weekCols }}" as="c" hint-placeholder-count="7">
+                    <div title="{{ c.title }}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;min-width:0;">
+                      <span style="{{ c.valStyle }}">{{ c.val }}</span>
+                      <div style="{{ c.barStyle }}"></div>
+                      <span style="{{ c.dayStyle }}">{{ c.day }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 22px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12px;font-weight:600;color:var(--text-2);">{{ trendTitleRest }}</div><div style="font:600 16px 'Geist Mono',monospace;color:var(--hr);">{{ weekRestVal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:3px;margin-top:12px;height:76px;">
+                  <sc-for list="{{ weekColsRest }}" as="c" hint-placeholder-count="7">
+                    <div title="{{ c.title }}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;min-width:0;">
+                      <span style="{{ c.valStyle }}">{{ c.val }}</span>
+                      <div style="{{ c.barStyle }}"></div>
+                      <span style="{{ c.dayStyle }}">{{ c.day }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 22px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:12px;font-weight:600;color:var(--text-2);">{{ trendTitleVit }}</div><div style="font:600 16px 'Geist Mono',monospace;color:oklch(0.74 0.13 200);">{{ weekVitVal }}</div></div>
+                <div style="display:flex;align-items:flex-end;gap:3px;margin-top:12px;height:76px;">
+                  <sc-for list="{{ weekColsVit }}" as="c" hint-placeholder-count="7">
+                    <div title="{{ c.title }}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;min-width:0;">
+                      <span style="{{ c.valStyle }}">{{ c.val }}</span>
+                      <div style="{{ c.barStyle }}"></div>
+                      <span style="{{ c.dayStyle }}">{{ c.day }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Sleep (only when a night was synced) -->
+          <sc-if value="{{ hasSleep }}" hint-placeholder-val="{{ true }}">
+            <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;">
+                <div>
+                  <div style="font-size:12.5px;font-weight:600;color:var(--text-2);">Сон · прошлая ночь</div>
+                  <div style="display:flex;align-items:baseline;gap:12px;margin-top:8px;">
+                    <span style="font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--sleep);">{{ sleepTotalLabel }}</span>
+                    <span style="{{ sleepVerdictStyle }}">{{ sleepVerdict }}</span>
+                  </div>
+                  <div style="font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:5px;">{{ sleepEstNote }}</div>
+                  <div style="display:flex;gap:24px;margin-top:12px;">
+                    <div><div style="font:600 15px 'Geist Mono',monospace;color:var(--text-2);">{{ sleepBed }}</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.05em;margin-top:2px;">УСНУЛ</div></div>
+                    <div><div style="font:600 15px 'Geist Mono',monospace;color:var(--text-2);">{{ sleepWake }}</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.05em;margin-top:2px;">ПРОСНУЛСЯ</div></div>
+                  </div>
+                </div>
+                <div style="text-align:center;padding:6px 4px;">
+                  <div style="font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1;color:{{ sleepVerdictColorVar }};">{{ sleepScore }}</div>
+                  <div style="font:600 9px 'Geist Mono',monospace;letter-spacing:.09em;color:var(--text-3);margin-top:5px;">ОЦЕНКА НОЧИ</div>
+                </div>
+              </div>
+              <div style="margin-top:18px;">{{ hypnoEl }}</div>
+              <div style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);margin-top:8px;">{{ sleepWakeLine }}</div>
+              <div style="font:500 11px 'Geist Mono',monospace;color:var(--cal);margin-top:4px;">{{ stagesNote }}</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px;">
+                <sc-for list="{{ sleepStages }}" as="s" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;"><span style="{{ s.dotStyle }}"></span><div style="flex:1;"><div style="font:600 13px 'Geist Mono',monospace;">{{ s.dur }}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">{{ s.label }} · {{ s.pct }}</div></div></div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSeries }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Series" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
+            <div>
+              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);">{{ series.kicker }}</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:8px;">
+                <span style="font-size:46px;font-weight:600;letter-spacing:-.03em;line-height:1;color:{{ series.colorVar }};">{{ series.big }}</span>
+                <span style="font-size:16px;color:var(--text-3);">{{ series.unit }}</span>
+              </div>
+              <div style="font-size:12.5px;color:var(--text-2);margin-top:8px;">{{ series.sub }}</div>
+            </div>
+            <div style="display:flex;gap:26px;">
+              <sc-for list="{{ series.tiles }}" as="t" hint-placeholder-count="4">
+                <div style="text-align:right;"><div style="{{ t.valStyle }}">{{ t.val }}</div><div style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);letter-spacing:.05em;margin-top:4px;text-transform:uppercase;">{{ t.label }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="height:260px;">{{ series.chart }}</div>
+            <div style="display:flex;justify-content:space-between;font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--border);"><span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span><span>24:00</span></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:16px;">
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:16px;">{{ series.distTitle }}</div>
+              <div style="margin-bottom:14px;">{{ series.distBar }}</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ series.dist }}" as="d" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;"><span style="{{ d.dotStyle }}"></span><span style="font-size:12.5px;color:var(--text-2);flex:1;">{{ d.label }}</span><span style="font:600 12.5px 'Geist Mono',monospace;color:var(--text);">{{ d.val }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ showInsight }}" hint-placeholder-val="{{ true }}">
+              <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;">
+                <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Инсайт</div>
+                <div style="font-size:13.5px;line-height:1.6;color:var(--text-2);margin-top:14px;">{{ series.insight }}</div>
+                <div style="margin-top:auto;padding-top:18px;font:500 11px 'Geist Mono',monospace;color:var(--text-3);">{{ series.note }}</div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSleep }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Sleep" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <div style="grid-column:span 2;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Прошлая ночь</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:8px;"><span style="font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--sleep);">{{ sleepTotalLabel }}</span><span style="font-size:14px;color:var(--text-3);">в постели 23:52 → 06:24</span></div>
+              <div style="margin-top:20px;">{{ hypnoEl }}</div>
+              <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:8px;"><span>23:52</span><span>02:00</span><span>04:00</span><span>06:24</span></div>
+            </div>
+            <div style="grid-column:span 2;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Оценка сна</div>
+                <div style="font-size:26px;font-weight:600;letter-spacing:-.02em;">81<span style="font-size:14px;color:var(--text-3);font-weight:500;"> / 100</span></div>
+              </div>
+              <div style="margin-top:18px;">{{ sleepStackBigEl }}</div>
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px;">
+                <sc-for list="{{ sleepStages }}" as="s" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:11px;"><span style="{{ s.dotStyle }}"></span><div style="flex:1;"><div style="font:600 13px 'Geist Mono',monospace;">{{ s.dur }}</div><div style="font-size:11px;color:var(--text-3);margin-top:1px;">{{ s.label }} · {{ s.pct }}</div></div></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="grid-column:span 4;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Ср. пульс во сне</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--hr);">56<span style="font-size:13px;color:var(--text-3);font-weight:500;"> уд/мин</span></div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Ср. SpO₂ ночью</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--ox);">96<span style="font-size:13px;color:var(--text-3);font-weight:500;"> %</span></div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Пробуждений</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">2</div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Регулярность</div><div style="font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--vital);">88<span style="font-size:13px;color:var(--text-3);font-weight:500;"> %</span></div></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Activity" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <div style="grid-column:span 1;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;display:flex;flex-direction:column;align-items:center;">
+              <div style="align-self:flex-start;font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Кольца</div>
+              <div style="margin:14px 0;">{{ ringsBigEl }}</div>
+              <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--move);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Шаги</span><span style="font:600 12px 'Geist Mono',monospace;">99%</span></div>
+                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--cal);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Калории</span><span style="font:600 12px 'Geist Mono',monospace;">128%</span></div>
+                <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--dist);"></span><span style="font-size:12px;color:var(--text-2);flex:1;">Активность</span><span style="font:600 12px 'Geist Mono',monospace;">107%</span></div>
+              </div>
+            </div>
+            <div style="grid-column:span 3;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div><div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Шаги по часам</div><div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-size:32px;font-weight:600;letter-spacing:-.03em;color:var(--move);">{{ stepsNow }}</span><span style="font-size:13px;color:var(--text-3);">из 10 000</span></div></div>
+                <div style="text-align:right;"><div style="font:600 15px 'Geist Mono',monospace;">7.4 км</div><div style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;letter-spacing:.05em;">ДИСТАНЦИЯ</div></div>
+              </div>
+              <div style="height:150px;margin-top:16px;">{{ stepsBigEl }}</div>
+              <div style="display:flex;justify-content:space-between;font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:6px;"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+            </div>
+            <div style="grid-column:span 4;display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Активн. ккал</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--cal);">640</div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Всего ккал</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">2 180</div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Активность</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--dist);">64 <span style="font-size:12px;color:var(--text-3);font-weight:500;">мин</span></div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Этажи</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;">12</div></div>
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;"><div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);">Vitality</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:8px;color:var(--vital);">{{ vitalityBig }}</div></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWorkouts }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Workouts" style="max-width:1080px;margin:0 auto;animation:fadeUp .4s ease both;">
+          <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px;">
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div><div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Бег на улице</div><div style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:6px;">6.14 км · 42:12</div></div>
+                <div style="font:500 11px 'Geist Mono',monospace;color:var(--text-3);text-align:right;">18:04 – 18:46<br>темп 6'52"/км</div>
+              </div>
+              <div style="font:600 10px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:22px 0 10px 0;">Пульс во время бега</div>
+              <div style="height:150px;">{{ runHrEl }}</div>
+              <div style="display:flex;gap:8px;margin-top:6px;">
+                <span style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);">0'</span>
+                <span style="flex:1;"></span>
+                <span style="font:500 9.5px 'Geist Mono',monospace;color:var(--text-3);">42'</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--hr);">149</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">СР. ЧСС</div></div>
+                <div><div style="font:600 16px 'Geist Mono',monospace;">168</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">МАКС ЧСС</div></div>
+                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--cal);">498</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">ККАЛ</div></div>
+                <div><div style="font:600 16px 'Geist Mono',monospace;color:var(--dist);">6'52"</div><div style="font:500 9px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;letter-spacing:.05em;">СР. ТЕМП</div></div>
+              </div>
+            </div>
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;">
+              <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);">Сегодня · 3 тренировки</div>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+                <sc-for list="{{ workouts }}" as="w" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:13px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;">
+                    <span style="{{ w.dotStyle }}"></span>
+                    <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:600;letter-spacing:-.01em;">{{ w.type }}</div><div style="font:500 10.5px 'Geist Mono',monospace;color:var(--text-3);margin-top:3px;">{{ w.time }} · {{ w.dur }}</div></div>
+                    <div style="text-align:right;"><div style="font:600 12.5px 'Geist Mono',monospace;">{{ w.dist }}</div><div style="font:500 10px 'Geist Mono',monospace;color:var(--text-3);margin-top:2px;">{{ w.kcal }} ккал</div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-2);">Итого за день</span><span style="font:600 12.5px 'Geist Mono',monospace;">1:05:52 · 586 ккал</span></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:840},&quot;startTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Оформление&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;blue&quot;,&quot;green&quot;,&quot;mono&quot;],&quot;default&quot;:&quot;blue&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Оформление&quot;},&quot;showInsight&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Оформление&quot;}}">
+class Component extends DCLogic {
+  state = { page: 'overview', theme: null };
+
+  // ---- data ----
+  HR    = [54,53,52,54,53,55,58,64,72,76,74,70,73,78,75,72,74,79,138,112,86,74,66,60];
+  SPO2  = [96,96,95,95,96,96,97,98,98,97,98,98,97,98,98,97,98,97,96,97,98,98,97,97];
+  STRESS= [22,18,15,14,16,20,28,42,55,48,44,50,58,62,40,38,45,52,64,30,35,40,32,25];
+  STEPS = [0,0,0,0,0,120,340,610,880,520,430,760,540,410,300,480,650,720,1520,900,410,220,80,10];
+  CAL   = [2,2,2,2,2,6,20,42,60,38,32,52,40,30,24,34,46,52,120,70,30,16,8,3];
+  RUNHR = [112,128,140,146,149,151,150,153,155,152,150,154,158,160,157,155,159,162,160,165,168,150];
+  SLEEP = [['awake',6],['light',28],['deep',30],['light',20],['rem',18],['light',32],['deep',26],['light',24],['rem',28],['light',30],['deep',22],['light',20],['rem',24],['light',26],['awake',10],['light',22],['rem',20],['light',24],['deep',14]];
+  SLEEPC = { deep:'oklch(0.50 0.13 275)', light:'oklch(0.66 0.13 272)', rem:'oklch(0.70 0.12 205)', awake:'oklch(0.74 0.10 62)' };
+
+  get theme(){ let s=null; try{s=localStorage.getItem('rw_theme');}catch(e){} return this.state.theme || s || this.props.startTheme || 'dark'; }
+  isLight(){ return this.theme === 'light'; }
+  cvar(n){ return 'var(--'+n+')'; }
+
+  // ---- live data bridge (polls the local service /state) ----
+  _liveInit(){ if(this._li) return; this._li=true;
+    // /demo renders a synthetic showcase state (screenshots) — no sync, no live churn
+    const demo=location.pathname.indexOf('/demo')===0;
+    const pull=()=>fetch(demo?'/state_demo':'/state',{cache:'no-store'}).then(r=>r.json()).then(d=>{this.LIVE=d;this.setState({_t:Date.now()});}).catch(()=>{});
+    pull(); if(!demo) setInterval(pull,1000);
+    // sync recorded history once on page load
+    try{ if(!demo){ fetch('/sync',{method:'POST',cache:'no-store'}); this._syncing=true; setTimeout(()=>{this._syncing=false;this.setState({_s:0});},3000); } }catch(e){}
+    // default alarm time (uncontrolled input, set once it exists)
+    setTimeout(()=>{const t=document.getElementById('rw_alarm_time'); if(t&&!t.value)t.value='07:00';},600); }
+  syncNow(){
+    if(this._syncing) return;
+    this._syncing=true; this.setState({_s:Date.now()});
+    fetch('/sync',{method:'POST',cache:'no-store'}).catch(()=>{}).finally(()=>{
+      setTimeout(()=>{ this._syncing=false; this.setState({_s:0}); }, 3000);
+    });
+  }
+  _flash(msg){ this._alarmMsg=msg; this.setState({_a:Date.now()}); setTimeout(()=>{this._alarmMsg='';this.setState({_a:0});},4000); }
+  vibrate(){ fetch('/vibrate',{method:'POST'}).then(()=>this._flash('Громкий сигнал (поиск часов) отправлен')).catch(()=>this._flash('Часы недоступны')); }
+  stopVibrate(){ fetch('/vibrate/stop',{method:'POST'}).then(()=>this._flash('Сигнал остановлен')).catch(()=>this._flash('Часы недоступны')); }
+  gentleCue(){ fetch('/cue',{method:'POST'}).then(()=>this._flash('Мягкий сигнал (сон) отправлен')).catch(()=>this._flash('Часы недоступны')); }
+  setAlarm(){
+    const t=(document.getElementById('rw_alarm_time')||{}).value||'07:00';
+    const r=(document.getElementById('rw_alarm_repeat')||{}).value||'once';
+    const p=t.split(':'); const h=+p[0]||0, m=+p[1]||0;
+    const names={once:'разово',daily:'каждый день',weekdays:'будни',weekends:'выходные'};
+    fetch('/alarm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hour:h,minute:m,repeat:r})})
+      .then(()=>this._flash('Будильник '+t+' ('+(names[r]||r)+') поставлен')).catch(()=>this._flash('Часы недоступны'));
+  }
+  deleteAlarms(){ fetch('/alarm/delete',{method:'POST'}).then(()=>this._flash('Будильники удалены')).catch(()=>this._flash('Часы недоступны')); }
+  zoomRange(h){ if(!this._zoomMap)this._zoomMap={}; const now=Math.floor(Date.now()/1000); if(h)this._zoomMap['heroHr']={t0:now-h*3600,t1:now}; else delete this._zoomMap['heroHr']; this.setState({_z:Date.now()}); }
+  lucidToggle(on){
+    fetch(on?'/lucid/off':'/lucid/on',{method:'POST'})
+      .then(()=>this._flash(on?'Lucid-сигналы отключены':'Lucid-сигналы взведены на ночь'))
+      .catch(()=>this._flash('Сервис недоступен'));
+  }
+  toggleLog(){ this.setState({showLog:!this.state.showLog}); }
+  setPeriod(p){ this.setState({trendPeriod:p}); }
+  sleepToggle(active){
+    const url = active ? '/sleep/stop' : '/sleep/start';
+    fetch(url,{method:'POST'}).then(()=>this._flash(active?'Запись сна остановлена':'Запись включена · сигналы в REM взведены'))
+      .catch(()=>this._flash('Часы недоступны'));
+  }
+  fmtN(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString('ru-RU'); }
+  liveHRArr(){ const L=this.LIVE; if(!L||!L.series||!L.series.length) return null;
+    const hrs=L.series.map(p=>p.hr).filter(v=>v>0); if(hrs.length<2) return null;
+    const N=48, out=[], step=Math.max(1,Math.floor(hrs.length/N));
+    for(let i=0;i<hrs.length;i+=step) out.push(hrs[i]); return out.slice(-N); }
+
+  smooth(pts){
+    if(pts.length<2) return pts.length? `M ${pts[0][0]} ${pts[0][1]}`:'';
+    let d=`M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||p2;
+      const c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
+      const c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return d;
+  }
+
+  mkArea(vals,o){
+    const R=React.createElement, w=1000, h=o.h||220, color=o.color, id=o.id;
+    const lo=o.min!=null?o.min:Math.min(...vals), hi=o.max!=null?o.max:Math.max(...vals);
+    const rng=(hi-lo)||1, padT=o.padT!=null?o.padT:14, padB=o.padB!=null?o.padB:10, n=vals.length;
+    const X=i=> n<=1?0:(i/(n-1))*w, Y=v=> padT+(1-(v-lo)/rng)*(h-padT-padB);
+    const pts=vals.map((v,i)=>[X(i),Y(v)]);
+    const line=this.smooth(pts), area=line+` L ${w} ${h} L 0 ${h} Z`;
+    const grid=(o.grid!==false)? [0.25,0.5,0.75].map((g,i)=>R('line',{key:'g'+i,x1:0,x2:w,y1:padT+g*(h-padT-padB),y2:padT+g*(h-padT-padB),style:{stroke:'var(--grid)'},strokeWidth:1})):null;
+    return R('svg',{viewBox:`0 0 ${w} ${h}`,preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block',overflow:'visible'}},[
+      R('defs',{key:'d'},R('linearGradient',{id:id,x1:0,y1:0,x2:0,y2:1},[
+        R('stop',{key:0,offset:'0%',stopColor:color,stopOpacity:o.fillOp!=null?o.fillOp:0.20}),
+        R('stop',{key:1,offset:'100%',stopColor:color,stopOpacity:0}) ])),
+      grid,
+      R('path',{key:'a',d:area,fill:`url(#${id})`}),
+      R('path',{key:'l',d:line,fill:'none',stroke:color,strokeWidth:o.sw||2,strokeLinejoin:'round',strokeLinecap:'round',vectorEffect:'non-scaling-stroke'})
+    ]);
+  }
+
+  hrDayChart(pts,day0,o){
+    const R=React.createElement, W=1000, H=o.h||200, color=o.color, id=o.id;
+    if(!this._zoomMap) this._zoomMap={};
+    const z=this._zoomMap[o.id];                 // per-chart zoom
+    const t0=(z&&z.t0)||day0, t1=(z&&z.t1)||(day0+(o.span||86400));
+    const vis=pts.filter(p=>p[0]>=t0&&p[0]<=t1);
+    const use=vis.length>=2?vis:pts;
+    const lo=o.min, hi=o.max, rng=(hi-lo)||1, padT=14, padB=10;
+    const X=(ts)=> ((ts-t0)/(t1-t0))*W, Y=(v)=> padT+(1-(v-lo)/rng)*(H-padT-padB);
+    const xy=use.map(p=>[X(p[0]),Y(p[1])]);
+    const line=this.smooth(xy);
+    const area=xy.length? line+` L ${xy[xy.length-1][0].toFixed(1)} ${H} L ${xy[0][0].toFixed(1)} ${H} Z`:'';
+    const grid=[0.25,0.5,0.75].map((g,i)=>R('line',{key:'g'+i,x1:0,x2:W,y1:padT+g*(H-padT-padB),y2:padT+g*(H-padT-padB),style:{stroke:'var(--grid)'},strokeWidth:1}));
+    const svg=R('svg',{key:'svg',viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block',overflow:'visible'}},[
+      R('defs',{key:'d'},R('linearGradient',{id:id,x1:0,y1:0,x2:0,y2:1},[
+        R('stop',{key:0,offset:'0%',stopColor:color,stopOpacity:0.16}),
+        R('stop',{key:1,offset:'100%',stopColor:color,stopOpacity:0})])),
+      grid,
+      R('path',{key:'a',d:area,fill:`url(#${id})`}),
+      R('path',{key:'l',d:line,fill:'none',stroke:color,strokeWidth:o.sw||2.4,strokeLinejoin:'round',strokeLinecap:'round',vectorEffect:'non-scaling-stroke'})
+    ]);
+    const hv=this.state.hover;
+    const _fx=(e)=>{const r=e.currentTarget.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));};
+    const onDown=(e)=>{ this._drag={x0:_fx(e),x1:null}; this.setState({_dg:Date.now()}); };
+    const onMove=(e)=>{
+      const fx=_fx(e);
+      if(this._drag){ this._drag.x1=fx; this.setState({_dg:Date.now()}); return; }
+      if(!use.length) return;
+      let best=0,bd=1e9; for(let i=0;i<use.length;i++){const d=Math.abs(X(use[i][0])/W-fx); if(d<bd){bd=d;best=i;}}
+      this.setState({hover:{id:o.id, xf:X(use[best][0])/W, yf:Y(use[best][1])/H, val:use[best][1], ts:use[best][0]}});
+    };
+    const onUp=(e)=>{
+      if(this._drag){
+        const x1 = this._drag.x1!=null ? this._drag.x1 : (e?_fx(e):null);
+        if(x1!=null){
+          const a=Math.min(this._drag.x0,x1), b=Math.max(this._drag.x0,x1);
+          if(b-a>0.03){ this._zoomMap[o.id]={t0:t0+a*(t1-t0), t1:t0+b*(t1-t0)}; }
+        }
+      }
+      this._drag=null; this.setState({_dg:0});
+    };
+    const onLeave=()=>{ this._drag=null; if(this.state.hover) this.setState({hover:null}); };
+    const onDbl=()=>{ delete this._zoomMap[o.id]; this._drag=null; this.setState({_dg:0}); };
+    const kids=[svg];
+    if(this._drag && this._drag.x1!=null){
+      const a=Math.min(this._drag.x0,this._drag.x1)*100, b=Math.max(this._drag.x0,this._drag.x1)*100;
+      kids.push(R('div',{key:'sel',style:{position:'absolute',left:a+'%',width:(b-a)+'%',top:0,bottom:0,background:color,opacity:0.13,pointerEvents:'none'}}));
+    }
+    if(hv && hv.id===o.id && !this._drag){
+      const tm=new Date(hv.ts*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      const lp=(hv.xf*100).toFixed(2)+'%';
+      kids.push(R('div',{key:'ln',style:{position:'absolute',left:lp,top:0,bottom:0,width:'1px',background:'var(--border-2)',pointerEvents:'none'}}));
+      kids.push(R('div',{key:'dt',style:{position:'absolute',left:lp,top:(hv.yf*100)+'%',width:'9px',height:'9px',marginLeft:'-4.5px',marginTop:'-4.5px',borderRadius:'50%',background:color,boxShadow:'0 0 0 3px var(--panel)',pointerEvents:'none'}}));
+      kids.push(R('div',{key:'tp',style:{position:'absolute',left:lp,top:'-4px',transform:'translate(-50%,-100%)',background:'var(--panel-hi)',border:'1px solid var(--border-2)',borderRadius:'8px',padding:'5px 9px',font:'600 12px "Geist Mono",monospace',color:'var(--text)',whiteSpace:'nowrap',pointerEvents:'none',boxShadow:'0 6px 18px rgba(0,0,0,.28)'}}, tm+' · '+hv.val+(o.unit!==undefined?o.unit:' уд/мин')));
+    }
+    // event marks (e.g. lucid cues): vertical dashed line + label
+    (o.marks||[]).forEach((mk,i)=>{
+      if(mk.ts<t0||mk.ts>t1) return;
+      const lp=((mk.ts-t0)/(t1-t0)*100).toFixed(2)+'%';
+      kids.push(R('div',{key:'mk'+i,style:{position:'absolute',left:lp,top:0,bottom:0,width:'0',borderLeft:'2px dashed var(--move)',opacity:0.75,pointerEvents:'none'}}));
+      kids.push(R('div',{key:'mkl'+i,style:{position:'absolute',left:lp,top:'-2px',transform:'translateX(-50%)',font:'600 8.5px "Geist Mono",monospace',color:'var(--move)',background:'var(--panel)',padding:'0 4px',whiteSpace:'nowrap',pointerEvents:'none'}},mk.label||'сигнал'));
+    });
+    if(z){ kids.push(R('div',{key:'zr',onClick:onDbl,style:{position:'absolute',top:'-20px',right:'0',font:'600 11px "Geist Mono",monospace',color:color,cursor:'pointer'}}, 'сброс зума ×')); }
+    kids.push(R('div',{key:'ov',onMouseDown:onDown,onMouseMove:onMove,onMouseUp:onUp,onMouseLeave:onLeave,onDoubleClick:onDbl,style:{position:'absolute',inset:0,cursor:this._drag?'ew-resize':'crosshair'}}));
+    return R('div',{style:{position:'relative',width:'100%',height:H+'px'}},kids);
+  }
+
+  mkBars(vals,o){
+    const R=React.createElement, w=1000, h=o.h||200;
+    const hi=o.max||Math.max(...vals)||1, n=vals.length, gap=o.gap!=null?o.gap:0.32, bw=w/n;
+    return R('svg',{viewBox:`0 0 ${w} ${h}`,preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block'}},
+      vals.map((v,i)=>{
+        const bh=(v/hi)*(h-3), x=i*bw+bw*gap/2, ww=bw*(1-gap);
+        const col=v>0 ? (o.colorAt? o.colorAt(i,v):o.color) : 'var(--track)';
+        const hh2=Math.max(bh, 3);   // zero hours keep a faint stub — no dead air
+        const kids=o.titles&&o.titles[i]? [R('title',{key:'t'},o.titles[i])] : null;
+        return R('rect',{key:i,x:x,y:h-hh2,width:ww,height:hh2,rx:2.5,style:{fill:col}}, kids);
+      }));
+  }
+
+  mkRings(items,o){
+    const R=React.createElement, cx=50, cy=50, sw=o.sw||9, gapR=o.gapR||4;
+    const nodes=[];
+    items.forEach((it,i)=>{
+      const r=44 - i*(sw+gapR), c=2*Math.PI*r, frac=Math.min(it.v,1);
+      nodes.push(R('circle',{key:'t'+i,cx,cy,r,fill:'none',style:{stroke:'var(--track)'},strokeWidth:sw}));
+      nodes.push(R('circle',{key:'v'+i,cx,cy,r,fill:'none',stroke:it.color,strokeWidth:sw,strokeDasharray:`${(c*frac).toFixed(2)} ${c.toFixed(2)}`,strokeLinecap:'round',transform:`rotate(-90 ${cx} ${cy})`}));
+    });
+    return R('svg',{viewBox:'0 0 100 100',style:{width:o.size||158,height:o.size||158,display:'block'}},nodes);
+  }
+
+  mkStack(parts,o){
+    const R=React.createElement, w=1000, h=o.h||14;
+    const tot=parts.reduce((a,b)=>a+b.v,0)||1; let x=0;
+    const rects=parts.map((p,i)=>{ const ww=(p.v/tot)*w; const r=R('rect',{key:i,x:x,y:0,width:Math.max(ww-2,1),height:h,rx:h/2,style:{fill:p.color}}); x+=ww; return r; });
+    return R('svg',{viewBox:`0 0 ${w} ${h}`,preserveAspectRatio:'none',style:{width:'100%',height:h,display:'block'}},rects);
+  }
+
+  mkHypno(segs,o){
+    const R=React.createElement, w=1000, h=o.h||120;
+    const lvl={awake:0,rem:1,light:2,deep:3}, laneH=h/4, bandH=laneH*0.56;
+    const tot=segs.reduce((a,s)=>a+s[1],0)||1; let x=0;
+    const rects=segs.map((s,i)=>{ const ww=(s[1]/tot)*w; const y=lvl[s[0]]*laneH+(laneH-bandH)/2;
+      // gap only on wide segments: minute-level files (300+ entries) must render
+      // as a continuous ribbon, not a picket fence
+      const gap=ww>14?1.5:0;
+      const r=R('rect',{key:i,x:x,y:y,width:Math.max(ww-gap,0.8),height:bandH,rx:ww>8?2.5:0,style:{fill:this.SLEEPC[s[0]]}}); x+=ww; return r; });
+    return R('svg',{viewBox:`0 0 ${w} ${h}`,preserveAspectRatio:'none',style:{width:'100%',height:h,display:'block'}},rects);
+  }
+
+  fmt(m){ const h=Math.floor(m/60), mm=m%60; return h? `${h}ч ${mm}м`:`${mm}м`; }
+
+  // nested zigzag pack (linear analogue of concentric rings): three parallel
+  // zigzags packed tight, each filling top-down with its metric color
+  mkZigPack(items){
+    const R=React.createElement, W=124, H=150, t=10, b=H-10, a=15, n=5, gap=13;
+    const kids=[];
+    items.forEach((it,k)=>{
+      const cx=W/2+(k-1)*gap - a/2 + a/2;   // horizontal offset per zigzag
+      const off=(k-1)*gap;
+      const p=[];
+      for(let i=0;i<=n;i++) p.push([W/2+off+((i%2)? a : -a), t+(b-t)*i/n]);
+      const d='M '+p.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' L ');
+      const pct=Math.max(2.5,Math.min(100,it.v*100));
+      kids.push(R('path',{key:'t'+k,d,fill:'none',stroke:'var(--track)',strokeWidth:6.5,strokeLinecap:'round',strokeLinejoin:'round'}));
+      kids.push(R('path',{key:'p'+k,d,fill:'none',stroke:it.color,strokeWidth:6.5,strokeLinecap:'round',strokeLinejoin:'round',
+                          pathLength:100,strokeDasharray:pct+' 100',
+                          style:{transition:'stroke-dasharray .6s ease'}}));
+    });
+    return R('svg',{viewBox:`0 0 ${W} ${H}`,style:{width:'124px',height:'150px',display:'block'}},kids);
+  }
+
+  // Sleep-Cycle-style depth wave: one continuous curve (awake top, deep bottom)
+  mkSleepWave(segs,o){
+    const R=React.createElement,W=1000,H=o.h||150;
+    const depth={awake:0.07,rem:0.36,light:0.64,deep:0.92};
+    let mins=[]; segs.forEach(s=>{const d=depth[s[0]]!=null?depth[s[0]]:0.64; for(let i=0;i<s[1];i++)mins.push(d);});
+    if(mins.length<10) return null;
+    const sm=mins.map((_,i)=>{let a=0,c=0;for(let j=-5;j<=5;j++){const k=i+j;if(k>=0&&k<mins.length){a+=mins[k];c++;}}return a/c;});
+    const step=Math.max(1,Math.ceil(sm.length/260));
+    const pts=[];for(let i=0;i<sm.length;i+=step)pts.push([i/(sm.length-1)*W,8+sm[i]*(H-16)]);
+    if(pts.length&&pts[pts.length-1][0]<W)pts.push([W,pts[pts.length-1][1]]);
+    const line=this.smooth(pts), area=line+` L ${W} ${H} L 0 ${H} Z`;
+    const lanes=[['БОДРСТ.',0.07],['REM',0.36],['ЛЁГКИЙ',0.64],['ГЛУБОКИЙ',0.92]];
+    const kids=[R('svg',{key:'s',viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block'}},[
+      R('defs',{key:'d'},R('linearGradient',{id:'slwave',x1:0,y1:0,x2:0,y2:1},[
+        R('stop',{key:0,offset:'0%',stopColor:'var(--sleep)',stopOpacity:0.34}),
+        R('stop',{key:1,offset:'100%',stopColor:'var(--sleep)',stopOpacity:0.04})])),
+      lanes.map((g,i)=>R('line',{key:'g'+i,x1:0,x2:W,y1:8+g[1]*(H-16),y2:8+g[1]*(H-16),style:{stroke:'var(--grid)'},strokeWidth:1})),
+      R('path',{key:'a',d:area,fill:'url(#slwave)'}),
+      R('path',{key:'l',d:line,fill:'none',stroke:'var(--sleep)',strokeWidth:2.6,vectorEffect:'non-scaling-stroke',strokeLinejoin:'round',strokeLinecap:'round'})
+    ])];
+    lanes.forEach((g,i)=>kids.push(R('div',{key:'lb'+i,style:{position:'absolute',right:0,top:'calc('+(((8+g[1]*(H-16))/H)*100)+'% - 6px)',font:'500 8.5px "Geist Mono",monospace',letterSpacing:'.06em',color:'var(--text-3)',background:'color-mix(in srgb, var(--panel) 85%, transparent)',padding:'0 4px',pointerEvents:'none'}},g[0])));
+    return R('div',{style:{position:'relative',width:'100%',height:H+'px'}},kids);
+  }
+
+  // Apple-Health-style hourly HR range capsules (min–max per hour)
+  mkHrRanges(pts,day0,o){
+    const R=React.createElement,W=1000,H=o.h||130,lo=o.min||40,hi=o.max||160;
+    const per={}; (pts||[]).forEach(p=>{const h=Math.floor((p[0]-day0)/3600); if(h>=0&&h<24)(per[h]=per[h]||[]).push(p[1]);});
+    const Y=v=>4+(1-(v-lo)/(hi-lo))*(H-8);
+    const bw=W/24, caps=[];
+    for(let h=0;h<24;h++){const a=per[h]; if(!a||!a.length)continue;
+      const mn=Math.min(...a),mx=Math.max(...a);
+      const y1=Y(mx); const x=h*bw+bw*0.3, ww=bw*0.4;
+      caps.push(R('rect',{key:h,x:x,y:y1,width:ww,height:Math.max(Y(mn)-y1,ww),rx:ww/2,
+        style:{fill:'color-mix(in oklab, var(--hr) 60%, var(--panel-2))'}},
+        [R('title',{key:'t'},String(h).padStart(2,'0')+':00 · '+mn+'–'+mx+' уд/мин')]));
+    }
+    const grid=[60,90,120,150].filter(v=>v>lo&&v<hi).map((v,i)=>R('g',{key:'gg'+i},[
+      R('line',{key:'l',x1:0,x2:W,y1:Y(v),y2:Y(v),style:{stroke:'var(--grid)'},strokeWidth:1}),
+      R('text',{key:'t',x:W-4,y:Y(v)-3,textAnchor:'end',style:{font:'500 9px "Geist Mono",monospace',fill:'var(--text-3)'}},String(v))]));
+    return R('svg',{viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:'none',style:{width:'100%',height:'100%',display:'block'}},[grid,caps]);
+  }
+
+  // sparse periodic measurements (SpO2 / stress): dots on a day timeline
+  mkDayDots(pts,day0,o){
+    const R=React.createElement,W=1000,H=o.h||118,lo=o.min,hi=o.max;
+    const X=ts=>((ts-day0)/86400)*W, Y=v=>10+(1-(v-lo)/(hi-lo))*(H-20);
+    const grid=[0.25,0.5,0.75].map((g,i)=>R('line',{key:'g'+i,x1:0,x2:W,y1:10+g*(H-20),y2:10+g*(H-20),style:{stroke:'var(--grid)'},strokeWidth:1}));
+    const conn=pts.length>1?R('polyline',{key:'pl',points:pts.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' '),fill:'none',stroke:o.color,strokeWidth:1.4,strokeDasharray:'3 5',opacity:0.5,vectorEffect:'non-scaling-stroke'}):null;
+    const dots=pts.map((p,i)=>R('g',{key:i},[
+      R('circle',{key:'h',cx:X(p[0]),cy:Y(p[1]),r:8,style:{fill:o.color,opacity:0.15}}),
+      R('circle',{key:'c',cx:X(p[0]),cy:Y(p[1]),r:3.6,style:{fill:o.color}}),
+      R('title',{key:'t'},new Date(p[0]*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})+' · '+p[1]+(o.unit||''))]));
+    return R('svg',{viewBox:`0 0 ${W} ${H}`,style:{width:'100%',height:'100%',display:'block'}},[grid,conn,dots]);
+  }
+
+  navConf(){
+    const L=this.LIVE, st=(L&&L.stats)||{}, H=(L&&L.health)||null, SL=(L&&L.sleep)||null;
+    const hr = L ? (st.hr_cur ? String(st.hr_cur) : '—') : '72';
+    let steps = '9.9к';
+    if(L){ const s=st.steps_now||0; steps = s>=1000 ? (s/1000).toFixed(1).replace('.',',')+'к' : String(s); }
+    const spo2 = H&&H.spo2_avg ? H.spo2_avg+'%' : (L?'—':'97%');
+    const stress = H&&H.stress_avg ? String(H.stress_avg) : (L?'—':'36');
+    let sleepV='6:12';
+    if(L){ const a=SL&&SL.asleep_min; sleepV = a ? (Math.floor(a/60)+':'+String(a%60).padStart(2,'0')) : '—'; }
+    return [
+      ['overview','Обзор','var(--vital)',''],
+      ['hr','Пульс','var(--hr)',hr],
+      ['spo2','Кислород','var(--ox)',spo2],
+      ['sleep','Сон','var(--sleep)',sleepV],
+      ['activity','Активность','var(--move)',steps],
+      ['stress','Стресс','var(--stress)',stress],
+      ['workouts','Тренировки','var(--dist)','3'],
+    ];
+  }
+
+  seriesFor(page){
+    const t=this.theme;
+    const H=this._H||null;
+    const hv=(v,d)=> (H&&v!=null&&v!==0)? String(v) : d;
+    if(page==='hr'){
+      return { kicker:'Пульс за день', big:'72', unit:'уд/мин · средний', colorVar:'var(--hr)',
+        sub:'Покой 52 · максимум 142 · 24 ч мониторинг каждые 10 мин',
+        chart:this.mkArea(this.HR,{color:this.cssHr(),id:'sHr',h:260,min:44,max:150,sw:2.4}),
+        tiles:[ this.tile('52','покой',null),this.tile('72','средний',null),this.tile('142','максимум','var(--hr)'),this.tile('64','вариаб. мин',null) ],
+        distTitle:'Пульсовые зоны', distTitleTime:true,
+        dist:[ this.dz('Покой','13ч 40м','oklch(0.60 0.03 250)'),this.dz('Разминка','7ч 05м','oklch(0.66 0.15 150)'),this.dz('Жиросжигание','1ч 35м','oklch(0.72 0.15 90)'),this.dz('Кардио','28м','oklch(0.68 0.16 50)'),this.dz('Пик','9м','oklch(0.62 0.19 25)') ],
+        distBar:this.mkStack([{v:820,color:'oklch(0.60 0.03 250)'},{v:425,color:'oklch(0.66 0.15 150)'},{v:95,color:'oklch(0.72 0.15 90)'},{v:28,color:'oklch(0.68 0.16 50)'},{v:9,color:'oklch(0.62 0.19 25)'}],{h:14}),
+        insight:'Пульс покоя 52 уд/мин — на 2 удара ниже вашего недельного среднего. Заметный подъём в 18:00 совпал с пробежкой, восстановление до нормы заняло ~14 минут.',
+        note:'МОНИТОРИНГ: КАЖДЫЕ 10 МИН' };
+    }
+    if(page==='spo2'){
+      return { kicker:'Кислород в крови', big:hv(H&&H.spo2_avg,'97'), unit:'% · средний за день', colorVar:'var(--ox)',
+        sub:'Минимум '+hv(H&&H.spo2_min,'95')+'% · измерения каждые 30 мин · норма ≥ 95%',
+        chart:this.mkArea(this.SPO2,{color:this.cssOx(),id:'sOx',h:260,min:90,max:100,sw:2.4}),
+        tiles:[ this.tile(hv(H&&H.spo2_avg,'97'),'средний','var(--ox)'),this.tile(hv(H&&H.spo2_max,'99'),'максимум',null),this.tile(hv(H&&H.spo2_min,'95'),'минимум',null),this.tile('96','ночью',null) ],
+        distTitle:'Распределение сатурации',
+        dist:[ this.dz('≥ 95% — норма','96% времени','oklch(0.64 0.14 235)'),this.dz('90–94% — снижен','4% времени','oklch(0.70 0.14 90)'),this.dz('< 90% — низкий','0% времени','oklch(0.62 0.18 25)') ],
+        distBar:this.mkStack([{v:96,color:'oklch(0.64 0.14 235)'},{v:4,color:'oklch(0.70 0.14 90)'},{v:0.5,color:'oklch(0.62 0.18 25)'}],{h:14}),
+        insight:'Сатурация стабильно держалась в норме. Кратковременное снижение до 95% ночью — типично для глубоких фаз сна и не является отклонением.',
+        note:'ИЗМЕРЕНИЕ: КАЖДЫЕ 30 МИН' };
+    }
+    return { kicker:'Уровень стресса', big:hv(H&&H.stress_avg,'36'), unit:'· средний, норма', colorVar:'var(--stress)',
+      sub:'Мин '+hv(H&&H.stress_min,'14')+' · макс '+hv(H&&H.stress_max,'64')+' · мониторинг весь день',
+      chart:this.mkArea(this.STRESS,{color:this.cssStress(),id:'sStr',h:260,min:0,max:100,sw:2.4}),
+      tiles:[ this.tile(hv(H&&H.stress_avg,'36'),'средний','var(--stress)'),this.tile(hv(H&&H.stress_min,'14'),'минимум',null),this.tile(hv(H&&H.stress_max,'64'),'максимум',null),this.tile('3','пиков',null) ],
+      distTitle:'Состояния за день',
+      dist:[ this.dz('Расслаблен (0–39)','58%','oklch(0.66 0.15 152)'),this.dz('Норма (40–59)','27%','oklch(0.72 0.15 92)'),this.dz('Средний (60–79)','12%','oklch(0.68 0.16 50)'),this.dz('Высокий (80–100)','3%','oklch(0.62 0.19 28)') ],
+      distBar:this.mkStack([{v:58,color:'oklch(0.66 0.15 152)'},{v:27,color:'oklch(0.72 0.15 92)'},{v:12,color:'oklch(0.68 0.16 50)'},{v:3,color:'oklch(0.62 0.19 28)'}],{h:14}),
+      insight:'Основные пики стресса пришлись на утреннее совещание (08:00) и вечернюю тренировку. Дыхательная практика в 22:10 снизила уровень на 40% за 5 минут.',
+      note:'МОНИТОРИНГ: ВЕСЬ ДЕНЬ' };
+  }
+
+  cssHr(){ return 'oklch(0.64 0.20 18)'; }
+  cssOx(){ return 'oklch(0.60 0.15 235)'; }
+  cssStress(){ return 'oklch(0.70 0.17 34)'; }
+  cssMove(){ return 'oklch(0.70 0.16 152)'; }
+  cssCal(){ return 'oklch(0.74 0.15 62)'; }
+
+  tile(val,label,color){ return { val, label, valStyle:'font:600 20px "Geist Mono",monospace;letter-spacing:-.01em;color:'+(color||'var(--text)')+';' }; }
+  dz(label,val,color){ return { label, val, dotStyle:'width:9px;height:9px;border-radius:3px;flex-shrink:0;background:'+color+';' }; }
+
+  renderVals(){
+    const page=this.state.page;
+    // live overrides
+    this._liveInit();
+    const L=this.LIVE, st=(L&&L.stats)||{};
+    const lhr=this.liveHRArr(); if(lhr) this.HR=lhr;
+    // real per-minute day curves from synced history override the mock arrays
+    const SD=(L&&L.series_day)||null;
+    if(SD){
+      if(SD.hr&&SD.hr.length>1) this.HR=SD.hr;
+      if(SD.spo2&&SD.spo2.length>1) this.SPO2=SD.spo2;
+      if(SD.stress&&SD.stress.length>1) this.STRESS=SD.stress;
+      if(SD.steps_hourly&&SD.steps_hourly.some(v=>v>0)) this.STEPS=SD.steps_hourly;
+    }
+    const _H0 = (L&&L.health)||null;
+    const hrNow = st.hr_cur ? st.hr_cur : (_H0&&_H0.hr_avg ? _H0.hr_avg : (L?'—':'72'));
+    const hrRest = (_H0&&_H0.hr_resting) ? _H0.hr_resting : (st.hr_min ? st.hr_min : (L?'—':'52'));
+    const hrMaxV = (_H0&&_H0.hr_max) ? _H0.hr_max : (st.hr_max ? st.hr_max : (L?'—':'142'));
+    const stepsNow = (st.steps_now>0) ? this.fmtN(st.steps_now) : (_H0&&_H0.steps!=null ? this.fmtN(_H0.steps) : (L?'0':'9 900'));
+    const calNow = (st.calories>0) ? this.fmtN(st.calories) : (_H0&&_H0.calories!=null ? this.fmtN(_H0.calories) : (L?'0':'2 180'));
+    let syncLabel, _dotColor='var(--move)', _dotAnim='';
+    if(!L){ syncLabel='Синхронизировано'; }
+    else if(L.connected){
+      if(L.on_wrist){ syncLabel='На связи · на руке'; _dotColor='var(--move)'; }
+      else { syncLabel='На связи · часы сняты'; _dotColor='var(--cal)'; }
+    } else if((L.mode||'live')==='sync'){
+      syncLabel='Подключусь по расписанию'; _dotColor='var(--text-3)';
+    } else {
+      syncLabel='Связь потеряна · переподключение…'; _dotColor='var(--hr)'; _dotAnim='animation:softpulse 1.1s ease-in-out infinite;';
+    }
+    const statusDotStyle='width:6px;height:6px;border-radius:50%;flex-shrink:0;background:'+_dotColor+';'+_dotAnim;
+    const titles={overview:'Обзор',hr:'Пульс',spo2:'Кислород в крови',sleep:'Сон',activity:'Активность',stress:'Стресс',workouts:'Тренировки'};
+
+    // ---- health history (daily summary) + battery live overrides ----
+    const H = (L&&L.health)||null, B=(L&&L.battery)||null;
+    const vitalityBig = H&&H.vitality ? String(H.vitality) : (L?'—':'82');
+    // SpO2: the watch leaves daily spo2_avg=0, but per-minute readings + min/max
+    // do arrive — derive a real average from them so it isn't stuck on "—".
+    const _sd0=(L&&L.series_day)||null; const _spoNZ=((_sd0&&_sd0.spo2)||[]).filter(v=>v>0);
+    const spo2Real=(H&&H.spo2_avg)?H.spo2_avg:(_spoNZ.length?Math.round(_spoNZ.reduce((a,b)=>a+b,0)/_spoNZ.length):((H&&H.spo2_max&&H.spo2_min)?Math.round((H.spo2_max+H.spo2_min)/2):null));
+    const spo2Big     = spo2Real!=null ? String(spo2Real) : (L?'—':'97');
+    const spo2Min     = H&&H.spo2_min ? String(H.spo2_min) : (L?'—':'95');
+    const spo2Max     = H&&H.spo2_max ? String(H.spo2_max) : (L?'—':'99');
+    const stressBig   = H&&H.stress_avg!=null && H.stress_avg>0 ? String(H.stress_avg) : (L?'—':'36');
+    const stressMin   = H&&H.stress_min!=null ? String(H.stress_min) : (L?'—':'14');
+    const stressMax   = H&&H.stress_max ? String(H.stress_max) : (L?'—':'64');
+    let batteryLabel='68% · ≈9 дн', batteryBarStyle='width:68%;height:100%;background:var(--accent);border-radius:4px;';
+    if(B&&B.level!=null){ batteryLabel=B.level+'%'+(B.charging?' · зарядка':''); batteryBarStyle='width:'+B.level+'%;height:100%;background:'+(B.charging?'var(--move)':'var(--accent)')+';border-radius:4px;transition:width .4s;'; }
+    else if(L){ batteryLabel='нет данных'; batteryBarStyle='width:0%;height:100%;background:var(--accent);border-radius:4px;'; }
+    // expose live health to seriesFor()
+    this._H = H;
+
+    const navBase='display:flex;align-items:center;gap:11px;width:100%;padding:8px 10px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--text-2);font:500 13px Geist,sans-serif;cursor:pointer;transition:background .12s;';
+    const navActive='border-color:var(--border);background:var(--panel-2);color:var(--text);';
+    const navItems=this.navConf().map(([key,label,dot,value])=>({
+      key,label,value,
+      onClick:()=>this.setState({page:key}),
+      rowStyle: navBase+(page===key? navActive:''),
+      dotStyle: 'width:7px;height:7px;border-radius:2px;flex-shrink:0;background:'+dot+';'+(page===key?'':' opacity:.85;')
+    }));
+
+    // sleep derived (live from L.sleep when available)
+    const SL=(L&&L.sleep)||null;
+    let sleepSegs=this.SLEEP;
+    const stot={deep:0,light:0,rem:0,awake:0};
+    if(SL){
+      stot.deep=SL.deep_min||0; stot.light=SL.light_min||0; stot.rem=SL.rem_min||0; stot.awake=SL.awake_min||0;
+      if(SL.stages&&SL.stages.length){
+        // consumer-app treatment of minute-level stage files: micro-awakenings
+        // (<3 min, normal arousals nobody remembers) get absorbed into the
+        // surrounding stage; then same-type runs merge into readable blocks
+        const raw=SL.stages.filter(s=>s[1]>0);
+        let micro=0; const m=[];
+        for(const s of raw){
+          // any sub-3-min blip melts into the previous block (awake blips counted
+          // separately as micro-awakenings); totals in the cards stay exact
+          if(s[1]<3&&m.length){ if(s[0]==='awake')micro++; m[m.length-1][1]+=s[1]; continue; }
+          if(m.length&&m[m.length-1][0]===s[0]) m[m.length-1][1]+=s[1]; else m.push([s[0].slice(),s[1]]);
+        }
+        sleepSegs=m.map(s=>[s[0],s[1]]);
+        this._sleepWakeups=m.filter(s=>s[0]==='awake').length;
+        this._sleepMicro=micro;
+      }
+      else { sleepSegs=[['deep',stot.deep],['light',stot.light],['rem',stot.rem],['awake',stot.awake]].filter(s=>s[1]>0); }
+      if(!(stot.deep||stot.light||stot.rem)&&SL.asleep_min){ stot.light=SL.asleep_min; sleepSegs=[['light',SL.asleep_min]]; }
+    } else {
+      this.SLEEP.forEach(s=>stot[s[0]]+=s[1]);
+    }
+    // asleep_min is authoritative: stage minutes may cover only part of a
+    // merged multi-block night
+    const asleep=(SL&&SL.asleep_min)?SL.asleep_min:(stot.deep+stot.light+stot.rem), inbed=asleep+stot.awake;
+    const sleepShort = (L? (asleep? (Math.floor(asleep/60)+':'+String(asleep%60).padStart(2,'0')) : '—') : '6:12');
+    const _fmtClock=(ts)=> (ts&&ts>1000000000)? new Date(ts*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '—';
+    const sleepBed = SL? _fmtClock(SL.bed_ts) : '23:52';
+    const sleepWake = SL? _fmtClock(SL.wake_ts) : '06:24';
+    // honesty: rem_min===null means the watch did NOT stage this night —
+    // show a dash, not a fake zero
+    const _noStages = SL && ((SL.rem_min==null && SL.deep_min==null) ||
+      (SL.has_rem!==true && !SL.rem_min && !SL.deep_min));   // legacy zero-records too
+    const sleepStagesArr=[
+      {key:'deep',label:'Глубокий'},{key:'rem',label:'Быстрый (REM)'},
+      {key:'light',label:'Лёгкий'},{key:'awake',label:'Бодрствование'}
+    ].map(s=>{
+      const noData=_noStages && (s.key==='deep'||s.key==='rem');
+      return { label:s.label, dur:noData?'—':this.fmt(stot[s.key]),
+               pct:noData?'нет данных':(Math.round(stot[s.key]/inbed*100)+'%'),
+               dotStyle:'width:10px;height:10px;border-radius:3px;flex-shrink:0;background:'+this.SLEEPC[s.key]+';'+(noData?'opacity:.35;':'') };
+    });
+    const stagesNote=_noStages?'часы не считали фазы этой ночью — проверь на часах настройку точного мониторинга сна':'';
+    const stackParts=[{v:stot.deep,color:this.SLEEPC.deep},{v:stot.light,color:this.SLEEPC.light},{v:stot.rem,color:this.SLEEPC.rem},{v:stot.awake,color:this.SLEEPC.awake}];
+
+    const workouts=[
+      {type:'Бег на улице',time:'18:04',dur:'42:12',dist:'6.14 км',kcal:498,color:'var(--hr)'},
+      {type:'Ходьба',time:'12:36',dur:'18:40',dist:'1.28 км',kcal:82,color:'var(--move)'},
+      {type:'Дыхание',time:'22:10',dur:'05:00',dist:'—',kcal:6,color:'var(--ox)'},
+    ].map(w=>({...w, dotStyle:'width:10px;height:34px;border-radius:5px;flex-shrink:0;background:'+w.color+';'}));
+
+    const darkOn=this.theme==='dark';
+    const segBase='padding:6px 13px;font:500 12px Geist;cursor:pointer;border:none;';
+
+    // ---------- rich real-data derivations for the dense layout ----------
+    const SDx=(L&&L.series_day)||null;
+    const mx=(L&&L.max_hr)||190;
+    const zoneOf=(v)=>{const p=v/mx; return p<0.5?0:p<0.6?1:p<0.7?2:p<0.85?3:4;};
+    const ZN=['Покой','Разминка','Жиросжигание','Кардио','Пик'];
+    const ZC=['oklch(0.62 0.03 250)','oklch(0.70 0.13 168)','oklch(0.76 0.15 112)','oklch(0.72 0.16 55)','oklch(0.62 0.20 25)'];
+    const zmin=(SDx&&SDx.zone_min)||[0,0,0,0,0];
+    const zTot=zmin.reduce((a,b)=>a+b,0)||1;
+    const zoneParts=zmin.map((v,i)=>({v:Math.max(v,0.0001),color:ZC[i]}));
+    const zoneRows=ZN.map((n,i)=>({label:n,val:this.fmt(zmin[i]),pct:Math.round(zmin[i]/zTot*100)+'%',
+      dotStyle:'width:9px;height:9px;border-radius:3px;flex-shrink:0;background:'+ZC[i]+';'}));
+    const hrByHourVals=((SDx&&SDx.hr_by_hour)||new Array(24).fill(0)).map(v=>v||0);
+    let hrPts=(SDx&&SDx.hr_pts)||[];
+    let day0=(SDx&&SDx.day0)||0;
+    // extend the day curve to "now" with the live realtime tail: the per-minute
+    // detail file only syncs occasionally, so it lags; realtime HR fills the gap.
+    const _rt=((L&&L.series)||[]).filter(p=>p.hr>0);
+    if(_rt.length){
+      const lastT=hrPts.length?hrPts[hrPts.length-1][0]:0;
+      let tail=_rt.filter(p=>p.t>lastT).map(p=>[p.t,p.hr]);
+      if(tail.length>90){ const st=Math.ceil(tail.length/90); tail=tail.filter((_,i)=>i%st===0); }
+      if(tail.length) hrPts=hrPts.concat(tail);
+      if(!day0 && hrPts.length){ const d=new Date(hrPts[0][0]*1000); day0=hrPts[0][0]-(d.getHours()*3600+d.getMinutes()*60+d.getSeconds()); }
+    }
+    // hero HR axis labels — reflect the zoom window if zoomed
+    const _z=(this._zoomMap||{})['heroHr'];
+    const _at0=(_z&&_z.t0)||day0||0, _at1=(_z&&_z.t1)||((day0||0)+86400);
+    const hrAxis = (day0||_z)
+      ? [0,0.25,0.5,0.75,1].map(f=>({t:new Date((_at0+f*(_at1-_at0))*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}))
+      : [{t:'00:00'},{t:'06:00'},{t:'12:00'},{t:'18:00'},{t:'24:00'}];
+
+    // ---- night score + verdict ----
+    let sleepScore=null, sleepVerdict='', sleepVerdictColor='var(--text-3)';
+    if(SL&&SL.asleep_min){
+      const asl=SL.asleep_min, dF=(stot.deep/asl)||0, rF=(stot.rem/asl)||0;
+      const hasStages=(stot.deep+stot.rem)>0;
+      // no stage data (fragmented night) => score from duration+continuity only,
+      // rescaled — zeros for missing deep/REM would fake a "тяжёлая ночь"
+      const parts = 45*Math.min(1,asl/480) + 15*Math.max(0,1-(stot.awake||0)/90)
+                  + (hasStages ? 20*Math.min(1,dF/0.18)+20*Math.min(1,rF/0.20) : 0);
+      sleepScore=Math.round(hasStages ? parts : parts/0.60);
+      sleepVerdict=(sleepScore>=85?'Отличный сон':sleepScore>=70?'Хороший сон':sleepScore>=55?'Средний сон':'Тяжёлая ночь')+(hasStages?'':' · без стадий');
+      sleepVerdictColor=sleepScore>=85?'var(--move)':sleepScore>=70?'var(--sleep)':sleepScore>=55?'var(--cal)':'var(--hr)';
+    }
+
+    // ---- real insight cards (personal deltas, not one boring line) ----
+    const _days=(L&&L.days)||[];
+    const _slps=(L&&L.sleeps)||[];
+    const _avgOf=(arr,k)=>{const v=arr.map(d=>d&&d[k]).filter(x=>x); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+    const _chip=(good)=>'display:inline-block;border-radius:6px;padding:2.5px 8px;font:600 10.5px "Geist Mono",monospace;'+(good
+      ?'background:color-mix(in oklab, var(--move) 15%, transparent);color:var(--move);'
+      :'background:color-mix(in oklab, var(--hr) 13%, transparent);color:var(--hr);');
+    const insightCards=[];
+    const _H2=(L&&L.health)||{};
+    const _rT=_H2.hr_resting, _rA=_avgOf(_days.slice(-8,-1),'hr_resting');
+    if(_rT&&_rA){ const d=Math.round(_rT-_rA);
+      insightCards.push({label:'ПУЛЬС ПОКОЯ', big:String(_rT), unit:'уд/мин',
+        delta:(d>0?'+':'')+d+' к среднему', chipStyle:_chip(d<=0),
+        phrase:d<=-2?'Ниже твоего обычного — организм хорошо восстановился.':d>=3?'Выше обычного — возможно, недосып или стресс.':'В твоей персональной норме.'}); }
+    const _lastS=_slps[_slps.length-1], _sA=_avgOf(_slps.slice(-8,-1),'asleep_min');
+    if(_lastS&&_lastS.asleep_min&&_sA){ const d=Math.round(_lastS.asleep_min-_sA);
+      insightCards.push({label:'СОН ЭТОЙ НОЧЬЮ', big:this.fmt(_lastS.asleep_min), unit:'',
+        delta:(d>0?'+':'')+d+' мин к среднему', chipStyle:_chip(d>=0),
+        phrase:d<=-45?'Заметно меньше обычного — сегодня стоит лечь раньше.':d>=30?'Больше обычного — хороший задел на день.':'Около твоей нормы за неделю.'}); }
+    const _yd=_days.length>1?_days[_days.length-2]:null, _stA=_avgOf(_days.slice(-9,-2),'steps');
+    if(_yd&&_yd.steps&&_stA){ const p=Math.round((_yd.steps/_stA-1)*100);
+      insightCards.push({label:'ШАГИ ВЧЕРА', big:this.fmtN(_yd.steps), unit:'',
+        delta:(p>0?'+':'')+p+'% к среднему', chipStyle:_chip(p>=0),
+        phrase:p>=25?'Сильно активнее обычного — отличный день.':p<=-25?'Тише обычного — сегодня можно добрать прогулкой.':'Обычный уровень активности.'}); }
+    if(_slps.length>=3){
+      const beds=_slps.slice(-7).map(s=>s.bed_ts).filter(x=>x).map(ts=>{const dt=new Date(ts*1000);let m=dt.getHours()*60+dt.getMinutes(); if(m<12*60)m+=24*60; return m;});
+      if(beds.length>=3){ const spread=Math.max(...beds)-Math.min(...beds);
+        const avgB=beds.reduce((a,b)=>a+b,0)/beds.length; const hh=Math.floor(avgB/60)%24, mm2=Math.round(avgB%60);
+        insightCards.push({label:'ВРЕМЯ ОТБОЯ', big:String(hh).padStart(2,'0')+':'+String(mm2).padStart(2,'0'), unit:'в среднем',
+          delta:'разброс '+this.fmt(spread), chipStyle:_chip(spread<=75),
+          phrase:spread<=75?'Ложишься стабильно — это лучший вклад в качество сна.':'Разброс больше часа — стабильный отбой заметно улучшит глубокий сон.'}); }
+    }
+    const hasInsightCards=insightCards.length>0;
+
+    // ---- week mini-columns (steps pattern for rest-HR and vitality) ----
+    const weekColsOf=(key,color,fmtV)=>{
+      const wdn=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+      const per=this.state.trendPeriod||'7';
+      const monthsL=(L&&L.months)||[];
+      const MN2=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+      let items;
+      if(per==='12m'){
+        const mkey=key==='hr_resting'?'hr_resting':'vitality';
+        items=monthsL.map((m,i)=>({v:m[mkey]||0,label:MN2[(m.mon||1)-1],today:i===monthsL.length-1,
+          hint:MN2[(m.mon||1)-1]+': '+(m[mkey]||'—')}));
+      } else {
+        const n=per==='30'?30:7;
+        items=_days.slice(-n).map((d,i)=>{
+          const dt=d&&d.date_ts?new Date(d.date_ts*1000):null;
+          const today=dt&&(new Date().toDateString()===dt.toDateString());
+          const lab=n===7?(dt?wdn[dt.getDay()]:''):(dt&&(dt.getDate()===1||i===0||dt.getDay()===1)?String(dt.getDate()):'');
+          return {v:(d&&d[key])||0,label:lab,today,
+            hint:dt?(dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})+': '+((d&&d[key])||'—')):''};
+        });
+      }
+      const dense=items.length>12;
+      const nz=items.map(i=>i.v).filter(v=>v);
+      const vmax=Math.max(...(nz.length?nz:[1])), vmin=Math.min(...(nz.length?nz:[0]));
+      return items.map(it=>{
+        const hpx=it.v?Math.round(10+((it.v-vmin)/Math.max(1,vmax-vmin))*34):4;
+        return {day:it.label, val:(!dense&&it.v)?fmtV(it.v):'', title:it.hint||'',
+          valStyle:'font:600 10px "Geist Mono",monospace;color:'+(it.today?color:'var(--text-3)')+';',
+          dayStyle:'font:500 '+(dense?'8px':'9.5px')+' "Geist Mono",monospace;color:'+(it.today?'var(--text)':'var(--text-3)')+';'+(it.today?'font-weight:700;':''),
+          barStyle:'width:100%;border-radius:3px 3px 2px 2px;background:'+(it.v?(it.today?color:'color-mix(in oklab, '+color+' 40%, var(--panel-2))'):'var(--track)')+';height:'+hpx+'px;'};
+      });
+    };
+    const weekColsRest=weekColsOf('hr_resting','var(--hr)',v=>String(v));
+    const weekColsVit=weekColsOf('vitality','oklch(0.74 0.13 200)',v=>String(v));
+    const trendBtn=(p)=>('background:'+(period===p?'color-mix(in oklab, var(--accent) 14%, var(--panel-2))':'var(--panel-2)')+';border:1px solid '+(period===p?'color-mix(in oklab, var(--accent) 45%, var(--border))':'var(--border)')+';border-radius:7px;padding:4px 10px;font:600 10.5px "Geist Mono",monospace;color:'+(period===p?'var(--accent)':'var(--text-3)')+';cursor:pointer;');
+    const activeMin=(SDx&&SDx.active_min)||0;
+    const standingH=(_H0&&_H0.standing_hours!=null)?_H0.standing_hours:(st.standing||0);
+    const hrAvgV=(_H0&&_H0.hr_avg)?_H0.hr_avg:(st.hr_avg?st.hr_avg:(L?'—':'72'));
+    const hrLabel=(L&&L.on_wrist)?'сейчас':'средний';
+    const spo2AvgV=spo2Real;
+    const stat=(label,val,color)=>({label,val,valStyle:'font:600 21px "Geist Mono",monospace;letter-spacing:-.01em;margin-top:7px;color:'+(color||'var(--text)')+';'});
+    const stats=[
+      stat('Шаги',stepsNow,'var(--move)'),
+      stat('Актив. ккал',calNow,'var(--cal)'),
+      stat('Актив. мин',(L?String(activeMin):'64'),'var(--dist)'),
+      stat('Актив. часы',(L?String(standingH):'9'),'var(--dist)'),
+      stat('Ср. пульс',String(hrAvgV),'var(--hr)'),
+      stat('Покой',String(hrRest),'var(--hr)'),
+      stat('SpO₂',(spo2AvgV?spo2AvgV+'%':'—'),'var(--ox)'),
+      stat('Стресс',stressBig,'var(--stress)'),
+    ];
+    // weekly trends from persisted days[]
+    const days=(L&&L.days)||[];
+    const wk=(key)=>days.slice(-7).map(d=>(d&&d[key]!=null)?d[key]:0);
+    const weekSteps=wk('steps'), weekRest=wk('hr_resting'), weekVit=wk('vitality');
+    const lastNZ=(a)=>{for(let i=a.length-1;i>=0;i--){if(a[i])return a[i];}return '—';};
+    const hasWeek=days.length>=2;
+    // trend columns: period switcher 7д / 30д / 12м (his "no weekly reset" ask)
+    const _wd=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const _MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const period=this.state.trendPeriod||'7';
+    const months=(L&&L.months)||[];
+    const _mkCols=(items)=>{ // items: {v,label,hint,today}
+      const vmax=Math.max(...items.map(i=>i.v||0),1);
+      const dense=items.length>12;
+      return items.map(it=>({
+        day:it.label, val:(!dense&&it.v)?(it.v>=1000?(it.v/1000).toFixed(1).replace('.',',')+'к':String(it.v)):'',
+        title:it.hint||'',
+        valStyle:'font:600 10px "Geist Mono",monospace;color:'+(it.today?'var(--move)':'var(--text-3)')+';',
+        dayStyle:'font:500 '+(dense?'8px':'9.5px')+' "Geist Mono",monospace;color:'+(it.today?'var(--text)':'var(--text-3)')+';'+(it.today?'font-weight:700;':''),
+        barStyle:'width:100%;border-radius:3px 3px 2px 2px;background:'+(it.today?'var(--move)':'color-mix(in oklab, var(--move) 45%, var(--panel-2))')+';height:'+(it.v?Math.max(5,Math.round(it.v/vmax*44)):4)+'px;'+(it.v?'':'background:var(--track);'),
+      }));
+    };
+    let weekCols;
+    if(period==='12m'){
+      weekCols=_mkCols(months.map((m,i)=>({v:m.steps_avg,label:_MN[(m.mon||1)-1],today:i===months.length-1,
+        hint:_MN[(m.mon||1)-1]+': в среднем '+this.fmtN(m.steps_avg)+' шагов/день ('+m.days+' дн.)'})));
+    } else {
+      const n=period==='30'?30:7;
+      weekCols=_mkCols(days.slice(-n).map((d,i,arr)=>{
+        const dt=d&&d.date_ts?new Date(d.date_ts*1000):null;
+        const today=dt&&(new Date().toDateString()===dt.toDateString());
+        const lab = n===7 ? (dt?_wd[dt.getDay()]:'') : (dt&&(dt.getDate()===1||i===0||dt.getDay()===1)?String(dt.getDate()):'');
+        return {v:(d&&d.steps)||0,label:lab,today,
+          hint:dt?(dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'})+': '+this.fmtN((d&&d.steps)||0)+' шагов'):''};
+      }));
+    }
+    const hasSleep=!!(SL&&SL.asleep_min);
+
+    // ---- activity rings: REAL goal fractions (was mock/always-full) ----
+    const rawSteps=(st.steps_now>0)?st.steps_now:((_H0&&_H0.steps)||0);
+    const rawCal=(st.calories>0)?st.calories:((_H0&&_H0.calories)||0);
+    const rawStand=(typeof standingH==='number')?standingH:(parseInt(standingH)||0);
+    const GOAL={steps:10000,cal:500,stand:12};
+    const fMove=Math.min(rawSteps/GOAL.steps,1), fCal=Math.min(rawCal/GOAL.cal,1), fStand=Math.min(rawStand/GOAL.stand,1);
+    const RC=[this.cssMove(),this.cssCal(),'oklch(0.68 0.13 205)'];
+    const goalRows=[
+      {label:'Шаги',val:this.fmtN(rawSteps),goal:this.fmtN(GOAL.steps),bar:Math.round(fMove*100),color:RC[0]},
+      {label:'Актив. ккал',val:this.fmtN(rawCal),goal:String(GOAL.cal),bar:Math.round(fCal*100),color:RC[1]},
+      {label:'Актив. часы',val:String(rawStand),goal:String(GOAL.stand),bar:Math.round(fStand*100),color:RC[2]},
+    ].map(r=>({label:r.label,val:r.val,goal:r.goal,
+      dotStyle:'width:8px;height:8px;border-radius:2px;flex-shrink:0;background:'+r.color+';',
+      barStyle:'height:100%;border-radius:3px;width:'+r.bar+'%;background:'+r.color+';transition:width .5s ease;'}));
+    // nested zigzag pack + right-side legend (the rings layout, zigzag soul)
+    const trackFields={
+      zigPackEl:this.mkZigPack([{v:fMove,color:RC[0]},{v:fCal,color:RC[1]},{v:fStand,color:RC[2]}]),
+    };
+
+    // ---- freshness label (C4) ----
+    let syncAgo='';
+    if(L&&L.last_sync){ const sa=Math.max(0,(L.now||0)-L.last_sync);
+      syncAgo = sa<90?'обновлено только что':(sa<3600?('обновлено '+Math.round(sa/60)+' мин назад'):('обновлено '+Math.round(sa/3600)+' ч назад')); }
+
+    // ---- insights from history (B3) ----
+    const insights=[];
+    const _avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+    const _num=(a,k)=>a.map(x=>x&&x[k]).filter(v=>v!=null&&v>0);
+    const dd2=(L&&L.days)||[];
+    if(dd2.length>=4){
+      const rest=_num(dd2,'hr_resting');
+      if(rest.length>=4){ const rn=Math.round(_avg(rest.slice(-3))), pr=rest.slice(-6,-3), rp=pr.length?Math.round(_avg(pr)):rn;
+        if(rp&&rn<rp-1) insights.push({t:'Пульс покоя снижается ('+rp+'→'+rn+') — хороший знак восстановления.',c:'var(--move)'});
+        else if(rp&&rn>rp+2) insights.push({t:'Пульс покоя вырос ('+rp+'→'+rn+') — возможно усталость или недосып.',c:'var(--hr)'});
+        else insights.push({t:'Пульс покоя стабилен, ~'+rn+' уд/мин.',c:'var(--text-2)'}); }
+      const stp=_num(dd2,'steps');
+      if(stp.length>=3){ const a7=Math.round(_avg(stp.slice(-7))), td=stp[stp.length-1];
+        if(td&&a7) insights.push({t:'Шаги сегодня '+td.toLocaleString('ru-RU')+' — '+Math.round(td/a7*100)+'% от среднего за неделю.',c:'var(--move)'}); }
+      const vit=_num(dd2,'vitality');
+      if(vit.length>=4){ const vn=Math.round(_avg(vit.slice(-3))), vp=Math.round(_avg(vit.slice(-6,-3)));
+        if(vp&&vn>vp+3) insights.push({t:'Vitality растёт ('+vp+'→'+vn+') — активность выше обычного.',c:'oklch(0.74 0.13 200)'}); }
+    }
+    const sls=(L&&L.sleeps)||[];
+    if(sls.length>=3){
+      const dur=sls.map(s=>s.asleep_min).filter(v=>v>0);
+      if(dur.length>=3){ const av=Math.round(_avg(dur.slice(-5)));
+        insights.push({t:'Средний сон за последние ночи: '+Math.floor(av/60)+'ч '+String(av%60).padStart(2,'0')+'м.',c:'var(--sleep)'}); }
+      const beds=sls.map(s=>s.bed_ts).filter(v=>v>1e9).map(ts=>{const d=new Date(ts*1000);let h=d.getHours()+d.getMinutes()/60;if(h<12)h+=24;return h;});
+      if(beds.length>=3){ const m=_avg(beds), sd=Math.sqrt(_avg(beds.map(b=>(b-m)*(b-m))));
+        if(sd<0.75) insights.push({t:'Режим сна стабильный — ложишься примерно в одно время.',c:'var(--move)'});
+        else if(sd>1.5) insights.push({t:'Время отбоя скачет (±'+sd.toFixed(1)+'ч) — ровный режим улучшил бы восстановление.',c:'var(--stress)'}); }
+    }
+    const insightRows=insights.slice(0,4).map(i=>({t:i.t,dotStyle:'width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+i.c+';'}));
+    const hasInsights=insightRows.length>0;
+
+    // ---- sleep-engine harvester status ----
+    const ss=(L&&L.sleep_session)||{};
+    const sleepActive=!!ss.active;
+    let sleepSessLabel='Отслеживание выкл.';
+    if(sleepActive){ const dur=Math.max(0,(L.now||0)-(ss.start_ts||0));
+      sleepSessLabel='Сессия '+Math.floor(dur/3600)+'ч '+String(Math.floor(dur%3600/60)).padStart(2,'0')+'м · зондов '+(ss.probe_count||0); }
+    const dstate=(L&&L.device_state)||null;
+    let devLabel='от часов пока нет статуса сна';
+    if(dstate){ devLabel=(dstate.asleep?'часы: СПИШЬ':'часы: бодрствуешь')+(dstate.worn===false?' · сняты':''); }
+    const _pr=(ss.probes)||[];
+    const _sf=_pr.filter(p=>p.kind==='sleep_file');
+    const _interim=_sf.filter(p=>p.is_awake===false).length;
+    const sleepProbeSummary = sleepActive
+      ? ('файлов сна: '+_sf.length+' (промежуточных: '+_interim+') · детали: '+_pr.filter(p=>p.kind==='details').length)
+      : (_pr.length
+          ? ('итог сессии: зондов '+_pr.length+' · файлов сна '+_sf.length+' (промежуточных '+_interim+') · минутных догрузок '+_pr.filter(p=>p.kind==='details').length)
+          : 'включи вечером перед сном — движок соберёт ночь и при взводе даст сигналы в REM');
+    // night review: HR chart + probe log for the CURRENT or LAST session
+    // (the morning after is exactly when you want to see it)
+    let nightEl=null;
+    const _lastProbeTs=_pr.length?_pr[_pr.length-1].ts:0;
+    const cueMarks=_pr.filter(p=>p.kind==='cue').map((p,i)=>({ts:p.ts,label:'СИГНАЛ '+(p.n||i+1)}));
+    if(ss.start_ts && _pr.length){
+      const endT = sleepActive ? (L.now||0) : _lastProbeTs;
+      const np=hrPts.filter(p=>p[0]>=ss.start_ts && p[0]<=endT+300);
+      if(np.length>2){
+        const nv=np.map(p=>p[1]);
+        nightEl=this.hrDayChart(np, ss.start_ts, {color:'var(--sleep)', id:'nightHr', h:110,
+          min:Math.max(35,Math.min(...nv)-6), max:Math.max(...nv)+8,
+          span:Math.max(3600, endT-ss.start_ts), sw:2, marks:cueMarks});
+      }
+    }
+    const cueSummary = cueMarks.length
+      ? ('движок дал '+cueMarks.length+' сигн.: '+cueMarks.map(m=>new Date(m.ts*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})).join(', '))
+      : '';
+    const _fmtT=(ts)=>new Date(ts*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+    const probeRows=_pr.slice(-8).reverse().map(p=>{
+      let t='';
+      if(p.kind==='sleep_file') t='файл сна: '+(p.is_awake===false?'В ПРОЦЕССЕ':'завершён')+' · стадий '+(p.stages||0)+' · сон '+(p.asleep_min||0)+' мин';
+      else if(p.kind==='details') t='минутные данные: '+(p.minutes||0)+' мин, пульс '+(p.last_hr||'—');
+      else if(p.kind==='devstate') t='часы: '+(p.asleep?'СПИШЬ':'бодрствуешь')+(p.worn===false?' · сняты':'');
+      else if(p.kind==='cue') t='МЯГКИЙ СИГНАЛ №'+(p.n||'?')+' — отправлен в REM';
+      else t=p.kind;
+      return {tm:_fmtT(p.ts), t};
+    });
+    const hasProbes=probeRows.length>0;
+    const nightTitle = sleepActive ? 'пульс с начала записи' : 'прошлая сессия · пульс за ночь';
+
+    return {
+      theme:this.theme,
+      accent:this.props.accent||'blue',
+      showInsight:this.props.showInsight!==false,
+      pageTitle:titles[page]||'Обзор',
+      hrNow, hrRest, hrMax:hrMaxV, stepsNow, calNow, syncLabel, statusDotStyle, sleepBed, sleepWake,
+      vitalityBig, spo2Big, spo2Min, spo2Max, stressBig, batteryLabel, batteryBarStyle,
+      navItems,
+      setDark:()=>{try{localStorage.setItem('rw_theme','dark');}catch(e){} this.setState({theme:'dark'});},
+      setLight:()=>{try{localStorage.setItem('rw_theme','light');}catch(e){} this.setState({theme:'light'});},
+      syncNow:()=>this.syncNow(),
+      syncAgo, hasInsights: hasInsightCards, insightRows, insightCards,
+      sleepScore: sleepScore!=null?String(sleepScore):'—',
+      sleepVerdict, sleepVerdictStyle:'font:600 12.5px Geist;color:'+sleepVerdictColor+';',
+      sleepVerdictColorVar: sleepVerdictColor,
+      exportCsv:()=>{ try{ window.location.href='/export'; }catch(e){} },
+      vibrate:()=>this.vibrate(), stopVibrate:()=>this.stopVibrate(), gentleCue:()=>this.gentleCue(),
+      setAlarm:()=>this.setAlarm(), deleteAlarms:()=>this.deleteAlarms(),
+      alarmMsg:this._alarmMsg||'',
+      sleepActive, sleepSessLabel, devLabel, sleepProbeSummary,
+      nightEl, hasNight: !!nightEl, probeRows, hasProbes, nightTitle, stagesNote,
+      hasNightOpen: !!nightEl && sleepActive,
+      showNightInLog: !!nightEl && !sleepActive && !!this.state.showLog,
+      sleepWakeLine:(this._sleepWakeups!=null)
+        ? ((this._sleepWakeups?('пробуждений: '+this._sleepWakeups):'без настоящих пробуждений')
+           +(this._sleepMicro?(' · '+this._sleepMicro+' микропробуждений сглажено — это норма сна'):''))
+        : '',
+      lucidOn: !!(L&&L.lucid&&L.lucid.enabled),
+      lucidToggle:()=>this.lucidToggle(!!(L&&L.lucid&&L.lucid.enabled)),
+      lucidDotStyle:'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:'+((L&&L.lucid&&L.lucid.rem_live)?'var(--move)':((L&&L.lucid&&L.lucid.enabled)?'var(--sleep)':'var(--text-3)'))+';'+((L&&L.lucid&&L.lucid.enabled)?'animation:softpulse 2s infinite;':''),
+      lucidPillLabel:(L&&L.lucid&&L.lucid.enabled)?'Сигналы в REM · вкл':'Сигналы в REM · выкл',
+      lucidPillStyle:'display:flex;align-items:center;border-radius:999px;padding:8px 15px;font:600 12px Geist;cursor:pointer;white-space:nowrap;'+((L&&L.lucid&&L.lucid.enabled)
+        ?'background:color-mix(in oklab, var(--sleep) 15%, var(--panel-2));border:1px solid color-mix(in oklab, var(--sleep) 45%, var(--border));color:var(--sleep);'
+        :'background:var(--panel-2);border:1px solid var(--border);color:var(--text-3);'),
+      lucidShort:(L&&L.lucid&&L.lucid.enabled)?((L.lucid.rem_live?'REM сейчас · ':'')+(L.lucid.cues_sent?('сигналов: '+L.lucid.cues_sent):'движок взведён')):(cueSummary||''),
+      sleepHumanStatus: sleepActive
+        ? ('Записываю твой сон · '+sleepSessLabel.replace('Сессия ','').split(' · ')[0]+((L&&L.lucid&&L.lucid.enabled)?' · сигналы в REM взведены':''))
+        : ((L&&L.lucid&&L.lucid.auto_night)?'Выключен · сам включусь в 22:30':'Выключен · включи перед сном'),
+      wakeLine:(L&&L.lucid&&L.lucid.wake&&L.lucid.wake.enabled)
+        ? ('умный будильник: разбужу после '+Math.round((L.lucid.wake.after_min||360)/60)+'ч сна'+(L.lucid.wake.backup_hm?(' · резервный на часах в '+L.lucid.wake.backup_hm):' · резервный на часах поставится сам'))
+        : '',
+      sleepPanelStyle:'grid-column:span 12;background:var(--panel);border-radius:18px;padding:20px 24px;'+(sleepActive
+        ?'border:1px solid color-mix(in oklab, var(--sleep) 40%, var(--border));box-shadow:0 10px 44px -22px var(--sleep);'
+        :'border:1px solid var(--border);'),
+      showLog:!!this.state.showLog, toggleLog:()=>this.toggleLog(),
+      journalLabel:(this.state.showLog?'▾ скрыть журнал ночи':'▸ журнал ночи · '+probeRows.length+' записей'),
+      sleepToggle:()=>this.sleepToggle(sleepActive),
+      sleepBtnLabel: sleepActive?'Остановить запись':'Начать запись сна',
+      sleepStateText: sleepActive?'ИДЁТ ЗАПИСЬ СНА':'запись выключена',
+      sleepDotStyle:'width:9px;height:9px;border-radius:50%;flex-shrink:0;background:'+(sleepActive?'var(--sleep)':'var(--text-3)')+';'+(sleepActive?'box-shadow:0 0 0 4px color-mix(in oklab, var(--sleep) 22%, transparent);animation:softpulse 2s infinite;':''),
+      sleepStateStyle:'font:600 12px "Geist Mono",monospace;letter-spacing:.06em;color:'+(sleepActive?'var(--sleep)':'var(--text-3)')+';',
+      syncBtnLabel:this._syncing?'⟳ Синхронизация…':'⟳ Обновить',
+      syncBtnStyle:'background:var(--panel-2);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font:500 12px Geist;cursor:pointer;white-space:nowrap;color:'+(this._syncing?'var(--accent)':'var(--text-2)')+';',
+      primBtnStyle:'background:color-mix(in oklab, var(--accent) 12%, var(--panel-2));border:1px solid color-mix(in oklab, var(--accent) 45%, var(--border));border-radius:9px;padding:7px 14px;font:600 12px Geist;cursor:pointer;white-space:nowrap;color:var(--accent);',
+      sleepBtnStyle:(sleepActive
+        ? 'background:var(--panel-2);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font:500 12px Geist;cursor:pointer;white-space:nowrap;color:var(--text-2);'
+        : 'background:color-mix(in oklab, var(--sleep) 13%, var(--panel-2));border:1px solid color-mix(in oklab, var(--sleep) 45%, var(--border));border-radius:9px;padding:7px 14px;font:600 12px Geist;cursor:pointer;white-space:nowrap;color:var(--sleep);'),
+      darkBtnStyle:segBase+(darkOn?'background:var(--panel-hi);color:var(--text);':'background:transparent;color:var(--text-3);'),
+      lightBtnStyle:segBase+'border-left:1px solid var(--border);'+(!darkOn?'background:var(--panel-hi);color:var(--text);':'background:transparent;color:var(--text-3);'),
+
+      isOverview:page==='overview',
+      isSeries:(page==='hr'||page==='spo2'||page==='stress'),
+      isSleep:page==='sleep',
+      isActivity:page==='activity',
+      isWorkouts:page==='workouts',
+
+      // overview charts
+      ringsEl:this.mkRings([{v:fMove,color:RC[0]},{v:fCal,color:RC[1]},{v:fStand,color:RC[2]}],{size:128}),
+      goalRows, ...trackFields,
+      hrMiniEl:this.mkArea(this.HR,{color:this.cssHr(),id:'ovHr',h:88,min:44,max:150,sw:2}),
+      spo2MiniEl:this.mkArea(this.SPO2,{color:this.cssOx(),id:'ovOx',h:60,min:90,max:100,sw:2,grid:false}),
+      stepsMiniEl:React.createElement('div',{style:{height:60}}, this.mkBars(this.STEPS,{color:this.cssMove(),h:200})),
+      calMiniEl:this.mkArea(this.CAL,{color:this.cssCal(),id:'ovCal',h:60,min:0,max:130,sw:2,grid:false}),
+      stressMiniEl:this.mkArea(this.STRESS,{color:this.cssStress(),id:'ovStr',h:88,min:0,max:100,sw:2}),
+      sleepStackEl:this.mkStack(stackParts,{h:12}),
+      sleepTotalLabel:this.fmt(asleep).replace('ч','ч ').replace('  ',' '),
+      sleepEstNote:(SL&&SL.est)
+        ? ('в постели '+this.fmt(SL.inbed_min||0)+' · не спал ~'+this.fmt(SL.awake_hr_min||0)+' · оценка по пульсу (счётчик часов сломался: '+this.fmt(SL.asleep_watch_min||0)+')')
+        : ((SL&&SL.asleep_hr_min)
+            ? ('в постели '+this.fmt(SL.inbed_min||0)+' · по пульсу до '+this.fmt(SL.asleep_hr_min)+' — часы строже считают тихое бодрствование')
+            : ((SL&&SL.inbed_min)?('в постели '+this.fmt(SL.inbed_min)):'')),
+
+      // ---- dense layout: real derived visualizations ----
+      hrAvgV, hrLabel, activeMin, standingH,
+      hrAxis,
+      zoom1h:()=>this.zoomRange(1), zoom6h:()=>this.zoomRange(6), zoomDay:()=>this.zoomRange(0),
+      zoomBtn:'background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:4px 10px;font:600 10.5px "Geist Mono",monospace;color:var(--text-2);cursor:pointer;',
+      hrHeroEl: hrPts.length ? this.hrDayChart(hrPts,day0,{color:this.cssHr(),id:'heroHr',h:200,min:40,max:Math.max(150,(hrMaxV|0)+8),sw:2.6})
+                             : this.mkArea(this.HR,{color:this.cssHr(),id:'heroHr',h:200,min:40,max:Math.max(150,(hrMaxV|0)+8),sw:2.6,fillOp:0.16}),
+      hrByHourEl: hrPts.length
+        ? this.mkHrRanges(hrPts,day0,{h:130,min:40,max:Math.max(150,(hrMaxV|0)+10)})
+        : this.mkBars(hrByHourVals,{h:130,gap:0.34,color:'color-mix(in oklab, var(--hr) 40%, var(--panel-2))'}),
+      zoneStackEl:this.mkStack(zoneParts,{h:16}),
+      zoneRows,
+      stats,
+      stepsHourEl:(()=>{const v=(SDx&&SDx.steps_hourly)||this.STEPS;
+        return this.mkBars(v,{color:this.cssMove(),h:130,gap:0.34,
+          titles:v.map((s,i)=>String(i).padStart(2,'0')+':00–'+String(i+1).padStart(2,'0')+':00 · '+this.fmtN(s)+' шагов')});})(),
+      // sparse periodic measurements → dot timeline; dense history → interactive curve
+      stressDayEl:(()=>{const p=(SDx&&SDx.stress_pts)||[];
+        if(p.length>48) return this.hrDayChart(p,day0,{color:this.cssStress(),id:'strDay',h:118,min:0,max:100,sw:2.2,unit:''});
+        if(p.length)    return this.mkDayDots(p,day0,{color:this.cssStress(),h:118,min:0,max:100,unit:''});
+        return this.mkArea(this.STRESS,{color:this.cssStress(),id:'strDay',h:118,min:0,max:100,sw:2.2});})(),
+      spo2DayEl:(()=>{const p=(SDx&&SDx.spo2_pts)||[];
+        if(p.length>48) return this.hrDayChart(p,day0,{color:this.cssOx(),id:'spoDay',h:118,min:88,max:100,sw:2.2,unit:'%'});
+        if(p.length)    return this.mkDayDots(p,day0,{color:this.cssOx(),h:118,min:88,max:100,unit:'%'});
+        return this.mkArea(this.SPO2,{color:this.cssOx(),id:'spoDay',h:118,min:88,max:100,sw:2.2,grid:false});})(),
+      stressMeasures:(SDx&&SDx.stress_pts)?('замеров сегодня: '+SDx.stress_pts.length):'',
+      spo2Measures:(SDx&&SDx.spo2_pts)?('замеров сегодня: '+SDx.spo2_pts.length):'',
+      hasWeek, hasSleep, weekCols,
+      p7:()=>this.setPeriod('7'), p30:()=>this.setPeriod('30'), p12:()=>this.setPeriod('12m'),
+      p7Style:trendBtn('7'), p30Style:trendBtn('30'), p12Style:trendBtn('12m'),
+      trendTitle: period==='12m'?'Шаги · год (ср/день)':(period==='30'?'Шаги · месяц':'Шаги · неделя'),
+      trendTitleRest: period==='12m'?'Пульс покоя · год':(period==='30'?'Пульс покоя · месяц':'Пульс покоя · неделя'),
+      trendTitleVit: period==='12m'?'Vitality · год':(period==='30'?'Vitality · месяц':'Vitality · неделя'),
+      weekColsRest, weekColsVit,
+      weekStepsVal:this.fmtN(lastNZ(weekSteps)), weekRestVal:String(lastNZ(weekRest)), weekVitVal:String(lastNZ(weekVit)),
+
+      // series
+      series:this.seriesFor(page),
+
+      // sleep page
+      hypnoEl:this.mkSleepWave(sleepSegs,{h:150})||this.mkHypno(sleepSegs,{h:130}),
+      sleepStackBigEl:this.mkStack(stackParts,{h:16}),
+      sleepStages:sleepStagesArr,
+
+      // activity
+      ringsBigEl:this.mkRings([{v:0.99,color:this.cssMove()},{v:1.0,color:this.cssCal()},{v:1.0,color:'oklch(0.68 0.12 205)'}],{size:150}),
+      stepsBigEl:this.mkBars(this.STEPS,{h:200, colorAt:(i,v)=> i===18? this.cssHr() : this.cssMove() }),
+
+      // workouts
+      runHrEl:this.mkArea(this.RUNHR,{color:this.cssHr(),id:'runHr',h:150,min:100,max:175,sw:2.2}),
+      workouts,
+    };
+  }
+}
+</script>
+</body>
+</html>

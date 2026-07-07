@@ -1,0 +1,14 @@
+{
+  "auth_key": "PUT_YOUR_16_BYTE_HEX_AUTH_KEY_HERE",
+  "com_port": "COM8",
+  "mac": "XX:XX:XX:XX:XX:XX",
+  "model": "Redmi Watch 5 Active",
+  "max_hr": 190,
+  "http_port": 8765,
+  "host": "0.0.0.0",
+  "sync_interval_sec": 1800,
+  "mode": "live",
+  "notifications": true,
+  "battery_low_pct": 20,
+  "csv": null
+}

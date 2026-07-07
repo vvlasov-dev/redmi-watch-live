@@ -1,0 +1,30 @@
+---
+description: Redmi Watch 5 Live — how we build here (agent-oriented, not autocomplete)
+globs:
+  - "**/*.py"
+  - "**/*.html"
+alwaysApply: true
+---
+
+# How we work in this repo
+
+Source of truth is `docs/CONVENTIONS.md` — read it. This file is a thin adapter;
+keep the real rules in one place.
+
+@docs/CONVENTIONS.md
+
+## The short version (enforced by review + tests)
+
+1. **Plan before code** — affected files, interface changes, test list, blast radius.
+2. **Layers** — protocol (`client.py`) / parsers (`activity.py`, byte-exact ports)
+   / state+HTTP (`dashboard.py`) / pure engine (`sleep_engine.py`) /
+   canvas UI (`index.dc.html`) / SQLite (`store.py`). Don't smear across layers.
+3. **Data honesty** — absence is not a fact; minute-HR is the arbiter; show both
+   numbers when they disagree.
+4. **Verify against real data** — capture / DB / `/state` / screenshot, never "looks right".
+5. **Watch is fragile** — minimise BT chatter; no polling during sleep; never
+   restart the service mid-sleep-session.
+6. **Tests are the guardrail** — behaviour change starts from a regression test;
+   `python run_tests.py` must pass; `deploy.ps1` gates on it.
+
+Before "done", run the Definition of Done checklist in `docs/CONVENTIONS.md` §7.
