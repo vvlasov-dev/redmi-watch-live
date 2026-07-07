@@ -74,27 +74,22 @@ check("window end => off", a == "off")
 a, r, _ = se.decide([sf(T0 + 3600, T0, 40)], CFG, [], T0 + 3660, 23)
 check("evening not closed by window", a == "wait" and "окно" not in r)
 
-# --- 9. HR fallback: no stages, pulse over median => cue ---
+# --- 9. No watch REM stages => cue in the statistical REM window (time-based,
+#        NOT pulse detection — HR doesn't distinguish REM on this hardware) ---
 probes3 = [sf(hh(3), T0, 200), sf(hh(6), T0, 300)]
-hr = [[T0 + i * 60, 60] for i in range(0, 360)] + \
-     [[hh(6) + i * 60, 72] for i in range(0, 13)]
-a, r, live = se.decide(probes3, CFG, [], hh(6, 13), 5, hr)
-check("hr fallback cues on elevation", a == "cue" and live)
+a, r, live = se.decide(probes3, CFG, [], hh(6, 13), 5)
+check("no stages => time-window cue", a == "cue" and "окно REM" in r)
 
-# --- 10. HR fallback quiet pulse => wait ---
-hr_flat = [[T0 + i * 60, 60] for i in range(0, 380)]
-a, r, live = se.decide(probes3, CFG, [], hh(6, 13), 5, hr_flat)
-check("hr fallback holds on flat pulse", a == "wait" and not live)
+# --- 10. time-window cue does NOT claim live REM detection (rem_live False) ---
+check("time-window cue is honest (not 'REM detected')", not live)
 
 # --- 11. QUIET NIGHT: zero sleep files, engine runs on the HR estimate ---
 est = {"onset": T0 + 3600, "asleep_min": 380, "awake_hint": False}
-hr_q = [[T0 + 3600 + i * 60, 58] for i in range(0, 360)] + \
-       [[hh(7) + i * 60, 70] for i in range(0, 13)]
-a, r, live = se.decide([], CFG, [], hh(7, 13), 6, hr_q, est)
-check("quiet night: cue with no files at all", a == "cue" and live)
+a, r, live = se.decide([], CFG, [], hh(7, 13), 6, None, est)
+check("quiet night: cue with no files at all", a == "cue")
 
 # --- 12. quiet night: awake hint pauses ---
-a, r, _ = se.decide([], CFG, [], hh(7, 13), 6, hr_q,
+a, r, _ = se.decide([], CFG, [], hh(7, 13), 6, None,
                     {"onset": T0 + 3600, "asleep_min": 380, "awake_hint": True})
 check("quiet night: awake hint => pause", a == "wait" and "пауза" in r)
 

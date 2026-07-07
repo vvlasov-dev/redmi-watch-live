@@ -171,21 +171,17 @@ def decide(probes, cfg, cues, now, local_hour, hr_pts=None, est=None):
         d_rem = (staged[-1].get("rem") or 0) - (staged[-2].get("rem") or 0)
         rem_live = d_rem > 0 and now - staged[-1]["ts"] < cfg["fresh_sec"]
     if not staged:
-        # FALLBACK B — REM from minute HR: pulse elevated over the night median.
-        hrs = [p for p in (hr_pts or []) if night_start <= p[0] <= now and p[1]]
-        if len(hrs) >= 30:
-            vals = sorted(v for _, v in hrs)
-            median = vals[len(vals) // 2]
-            recent = [v for t, v in hrs if now - t <= 14 * 60]
-            if len(recent) >= 3:
-                ravg = sum(recent) / len(recent)
-                if ravg >= median + 5:
-                    rem_live = True
-                    if cues and now - cues[-1] < cfg["cue_gap_min"] * 60:
-                        return "wait", "похоже на REM (пульс +%d к медиане), пауза" % round(ravg - median), True
-                    return "cue", "похоже на REM (пульс %d, медиана ночи %d) — сигнал" % (round(ravg), median), True
-                return "wait", "не REM (пульс %d ~ медиана %d, стадий от часов нет)" % (round(ravg), median), False
-        return "wait", "часы ещё не отдают стадии, пульса мало для эвристики", False
+        # NO live REM detection by pulse. Validated 2026-07-07 against two nights
+        # with the watch's own REM ground truth: REM vs non-REM HR differ by ~1
+        # bpm (16-26% precision) — pure noise on this wrist sensor. So we do NOT
+        # fake REM detection. Instead we cue in the STATISTICAL REM WINDOW: REM
+        # concentrates in the last third of the night, and we're already past
+        # the deep-sleep-protection gate (min_asleep), inside the morning window.
+        # Honest MILD-style timing (spaced cues in the REM-likely window), not
+        # sensor detection.
+        if cues and now - cues[-1] < cfg["cue_gap_min"] * 60:
+            return "wait", "окно REM по времени — пауза между сигналами", False
+        return "cue", "статистическое окно REM (поздняя фаза сна) — мягкий сигнал", False
     if not rem_live:
         return "wait", "не REM (по стадиям от часов)", False
 
