@@ -74,19 +74,22 @@ check("window end => off", a == "off")
 a, r, _ = se.decide([sf(T0 + 3600, T0, 40)], CFG, [], T0 + 3660, 23)
 check("evening not closed by window", a == "wait" and "окно" not in r)
 
-# --- 9. No watch REM stages => cue in the statistical REM window (time-based,
-#        NOT pulse detection — HR doesn't distinguish REM on this hardware) ---
+# --- 9. No watch REM stages => NO cue (we only cue on real watch REM; pulse
+#        can't detect REM on this hardware — proven 2026-07-08) ---
 probes3 = [sf(hh(3), T0, 200), sf(hh(6), T0, 300)]
 a, r, live = se.decide(probes3, CFG, [], hh(6, 13), 5)
-check("no stages => time-window cue", a == "cue" and "окно REM" in r)
+check("no watch REM => wait, no cue", a == "wait" and "нет REM-стадий" in r and not live)
 
-# --- 10. time-window cue does NOT claim live REM detection (rem_live False) ---
-check("time-window cue is honest (not 'REM detected')", not live)
+# --- 10. real watch REM (growing rem) => cue ---
+staged = [sf(hh(3), T0, 200), sf(hh(6), T0, 300, stages=50, rem=30),
+          sf(hh(6, 12), T0, 312, stages=60, rem=42)]
+a, r, live = se.decide(staged, CFG, [], hh(6, 13), 5)
+check("watch REM growing => cue", a == "cue" and live)
 
-# --- 11. QUIET NIGHT: zero sleep files, engine runs on the HR estimate ---
+# --- 11. quiet night past the gate but no watch REM => wait (not a blind cue) ---
 est = {"onset": T0 + 3600, "asleep_min": 380, "awake_hint": False}
 a, r, live = se.decide([], CFG, [], hh(7, 13), 6, None, est)
-check("quiet night: cue with no files at all", a == "cue")
+check("quiet night without watch REM => wait", a == "wait")
 
 # --- 12. quiet night: awake hint pauses ---
 a, r, _ = se.decide([], CFG, [], hh(7, 13), 6, None,
