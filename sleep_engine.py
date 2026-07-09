@@ -42,7 +42,8 @@ WAKE = {
     "enabled": True,
     "after_min": 360,          # target: wake after this much cumulative sleep
     "window_min": 45,          # look for a light/REM moment within this window
-    "backup_extra_min": 30,    # hardware watch alarm at after+extra as failsafe
+    "backup_extra_min": 60,    # hardware watch alarm at after+extra (past the smart
+                               # window so it's a true failsafe, not a pre-empt)
     "cue_gap_sec": 60,         # escalation pacing
     "max_soft": 4,             # gentle buzzes before sirens
     "max_sirens": 3,           # find-device alerts (loud) max
@@ -267,26 +268,32 @@ def _wake_tick(now):
     sf = [p for p in (sess.get("probes") or []) if p.get("kind") == "sleep_file"]
     asleep_f, night_start = cum_asleep(sf)
     est = night_estimate(now, sess.get("start_ts") or now)
-    if not night_start and est:
-        night_start = est.get("onset")
-    asleep = max(asleep_f, (est or {}).get("asleep_min") or 0)
-    if not night_start:
+    # STABLE anchor = the moment sleep was confirmed (set once, survives the dark
+    # window). est.onset drifts across the dark gap and gave wrong alarm timing
+    # (2026-07-09: fired 07:40 instead of ~6h, backup mis-placed at 05:36).
+    anchor = sess.get("asleep_confirmed_ts") or night_start or (est or {}).get("onset")
+    if not anchor:
         return
-    # one-off hardware backup alarm (failsafe: rings even if PC/BT dies).
-    # NOTE: if the smart wake succeeds earlier we currently can't delete it
-    # (no alarm-list command ported) — it rings once as a backstop.
+    # asleep by CLOCK from the anchor (accurate while dark, no samples), floored
+    # by whatever the file/estimate report
+    asleep = max(asleep_f, (est or {}).get("asleep_min") or 0, int((now - anchor) // 60))
+    # one-off hardware backup alarm — placed AFTER the smart window so it's a true
+    # failsafe (rings only if the smart wake failed / PC died). Can't be deleted
+    # (no alarm-list cmd), so it must not pre-empt the smart alarm.
     if not wk.get("backup_set"):
-        tgt = night_start + (WAKE["after_min"] + WAKE["backup_extra_min"]) * 60
+        tgt = anchor + (WAKE["after_min"] + WAKE["backup_extra_min"]) * 60
         lt = time.localtime(tgt)
         dashboard.queue_command({"kind": "alarm", "hour": lt.tm_hour,
                                  "minute": lt.tm_min, "repeat": "once"})
         wk["backup_set"] = True
         wk["backup_hm"] = "%02d:%02d" % (lt.tm_hour, lt.tm_min)
-        LOG("wake: hardware backup alarm queued for %s" % wk["backup_hm"])
+        LOG("wake: hardware backup alarm queued for %s (anchor %s)"
+            % (wk["backup_hm"], time.strftime("%H:%M", time.localtime(anchor))))
         dashboard._save_sleep_session()
     # arm the smart fire
-    overdue = now >= night_start + (WAKE["after_min"] + WAKE["window_min"]) * 60
+    overdue = now >= anchor + (WAKE["after_min"] + WAKE["window_min"]) * 60
     ready = asleep >= WAKE["after_min"] or overdue
+    night_start = anchor
     if not ready and not wk.get("firing"):
         return
     if not wk.get("firing"):
