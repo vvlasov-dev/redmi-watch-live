@@ -183,10 +183,15 @@ def push_sleep(sleep):
             S["sleeps"].sort(key=lambda s: s.get("date_ts", 0))
             S["sleeps"] = S["sleeps"][-200:]
         # HARVEST: a sleep file arrived — is it in-progress (is_awake False) or finished?
+        # cur_stage = the LAST block in the timeline = the current phase right now
+        # (this is how we read live REM: poll the file, look at cur_stage).
+        _stg = sleep.get("stages") or []
+        _cur = _stg[-1][0] if _stg else None
         _record_sleep_probe("sleep_file", {
             "is_awake": sleep.get("is_awake"), "asleep_min": sleep.get("asleep_min"),
             "deep": sleep.get("deep_min"), "light": sleep.get("light_min"),
-            "rem": sleep.get("rem_min"), "stages": len(sleep.get("stages") or []),
+            "rem": sleep.get("rem_min"), "stages": len(_stg),
+            "cur_stage": _cur,
             "bed_ts": sleep.get("bed_ts"), "wake_ts": sleep.get("wake_ts")})
     if STORE_ON and finished:
         try:
@@ -461,16 +466,14 @@ def stream_allowed():
         wk = sess.get("wake") or {}
         if wk.get("night_over") or wk.get("firing"):
             return True
-        start = sess.get("start_ts") or 0
-        now = time.time()
-        if not start:
-            return True
-        if now - start > 5.5 * 3600:
-            return True                       # wake / alarm window
+        # Realtime STREAMING kills the watch's REM staging (proven), so once
+        # asleep we stay DARK for the WHOLE night — we read the sleep FILE
+        # instead (polling the file is safe; only streaming wasn't). Streaming
+        # resumes only after the night is over.
         ac = sess.get("asleep_confirmed_ts")  # set by the engine once actually asleep
         if not ac:
             return True                       # awake / not asleep yet — keep streaming
-        return now - ac <= 25 * 60            # dark after 25 min of confirmed sleep
+        return False                          # asleep -> dark; file polling gives REM
 
 
 def _is_night(sess):

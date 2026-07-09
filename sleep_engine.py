@@ -49,6 +49,22 @@ WAKE = {
     "max_sirens": 3,           # find-device alerts (loud) max
 }
 
+# ---- LIVE REM detection by polling the watch's own sleep file ----
+# Key insight (proven 2026-07-09): REM staging died from our REALTIME HR
+# STREAMING (holding the sensor), NOT from reading the sleep file. So we can
+# stay dark on streaming (watch keeps staging REM) AND periodically READ the
+# sleep file — its last stage = the CURRENT phase. When the file shows REM now,
+# we are technically in REM live, and can wake / cue exactly then.
+# This re-introduces file polling during sleep, but ONLY in the morning REM
+# window and WITHOUT realtime streaming — the hypothesis is that this doesn't
+# disturb staging (streaming did). Self-verifies: if the morning file keeps real
+# REM through the polling, it's safe.
+REM_HUNT = {
+    "from_min": 240,           # start hunting REM after ~4h sleep (morning, REM-dense)
+    "poll_sec": 480,           # read the sleep file every ~8 min to catch a REM period
+    "wake_after_min": 300,     # once in REM AND slept >= this, wake IN rem
+}
+
 # ---- runtime state (mirrored into /state for the UI) ----
 ST = {
     "armed": False, "reason": "выключено", "rem_live": False,
@@ -151,6 +167,13 @@ def decide(probes, cfg, cues, now, local_hour, hr_pts=None, est=None):
             return "wait", "не спишь — пауза", False
         if now - last["ts"] > cfg["fresh_sec"] and not est:
             return "wait", "файл сна устарел (%d мин)" % ((now - last["ts"]) // 60), False
+        # DIRECT LIVE REM: the freshest polled file says the current phase is REM.
+        # This is the technical detection — read from the watch's own staging.
+        if (last.get("cur_stage") == "rem" and now - last["ts"] < cfg["fresh_sec"]
+                and (last.get("asleep_min") or 0) >= cfg["min_asleep_min"]):
+            if cues and now - cues[-1] < cfg["cue_gap_min"] * 60:
+                return "wait", "REM идёт (стадия от часов), пауза между сигналами", True
+            return "cue", "REM СЕЙЧАС — стадия от часов, сигнал", True
     elif est and est.get("awake_hint"):
         return "wait", "не спишь (по пульсу) — пауза", False
 
@@ -373,6 +396,18 @@ def _tick():
         # the watch stages REM itself (dashboard.stream_allowed reads this)
         sess["asleep_confirmed_ts"] = now
         dashboard._save_sleep_session()
+    # LIVE REM HUNT: while dark (not streaming — that's what broke staging), poll
+    # the sleep FILE periodically in the morning REM window so decide() sees the
+    # current phase. File-reading is safe; only realtime streaming disturbed REM.
+    ac = sess.get("asleep_confirmed_ts")
+    asleep_min = int((now - ac) // 60) if ac else 0
+    hunt = sess.setdefault("rem_hunt", {})
+    if asleep_min >= REM_HUNT["from_min"] and now - (hunt.get("last_poll") or 0) >= REM_HUNT["poll_sec"]:
+        hunt["last_poll"] = now
+        dashboard.request_sync()
+        LOG("rem-hunt: polling sleep file for live REM (asleep %d min)" % asleep_min)
+        dashboard._save_sleep_session()
+
     hr_pts = get_night_hr(now, sess.get("start_ts") or now)
     if not hr_pts:
         hr_pts = [[m.get("ts"), m.get("hr")] for m in (dashboard.S.get("day_minutes") or [])

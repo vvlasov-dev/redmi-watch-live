@@ -28,9 +28,9 @@ CFG["enabled"] = True
 T0 = int(time.mktime((2026, 7, 10, 23, 0, 0, 0, 0, -1)))   # 23:00 local
 
 
-def sf(ts, bed, asleep, stages=0, rem=0, awake=False):
+def sf(ts, bed, asleep, stages=0, rem=0, awake=False, cur=None):
     return {"kind": "sleep_file", "ts": ts, "bed_ts": bed, "asleep_min": asleep,
-            "stages": stages, "rem": rem, "is_awake": awake}
+            "stages": stages, "rem": rem, "is_awake": awake, "cur_stage": cur}
 
 
 def hh(h, m=0):
@@ -90,6 +90,21 @@ check("watch REM growing => cue", a == "cue" and live)
 est = {"onset": T0 + 3600, "asleep_min": 380, "awake_hint": False}
 a, r, live = se.decide([], CFG, [], hh(7, 13), 6, None, est)
 check("quiet night without watch REM => wait", a == "wait")
+
+# --- 12. LIVE REM: freshest polled file says current phase is REM => cue now ---
+rem_now = [sf(hh(3), T0, 200, cur="light"),
+           sf(hh(6), T0, 300, stages=40, rem=25, cur="rem")]
+a, r, live = se.decide(rem_now, CFG, [], hh(6, 1), 5)
+check("live REM (cur_stage=rem) => cue", a == "cue" and "REM СЕЙЧАС" in r and live)
+
+# --- 13. current phase light (not REM) => wait ---
+light_now = [sf(hh(6), T0, 300, stages=40, rem=25, cur="light")]
+a, r, live = se.decide(light_now, CFG, [], hh(6, 1), 5)
+check("current phase light => wait (no cue)", a == "wait")
+
+# --- 14. REM detected but too soon after last cue => spaced ---
+a, r, live = se.decide(rem_now, CFG, [hh(6) - 300], hh(6, 1), 5)
+check("REM cue respects spacing", a == "wait" and live)
 
 # --- 12. quiet night: awake hint pauses ---
 a, r, _ = se.decide([], CFG, [], hh(7, 13), 6, None,
