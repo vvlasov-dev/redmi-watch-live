@@ -97,8 +97,10 @@ def night_estimate(now, session_start):
     est = None
     if len(mins) >= 20:
         rest = (dashboard.S.get("health") or {}).get("hr_resting") or 55
-        thr_on, thr_wake = rest + 8, rest + 16
-        # onset: first run of 15 quiet minutes (HR <= rest+8, no step growth)
+        thr_on, thr_wake = rest + 6, rest + 16
+        # onset: first run of 25 quiet minutes (HR <= rest+6, no step growth).
+        # 25 not 15 — sitting still at the PC for 15 min was a false "asleep"
+        # (2026-07-10) that darkened realtime while the user was awake.
         onset = None
         run_start, run = None, 0
         prev_steps = None
@@ -109,7 +111,7 @@ def night_estimate(now, session_start):
                 run += 1
                 if run_start is None:
                     run_start = m["ts"]
-                if run >= 15:
+                if run >= 25:
                     onset = run_start
                     break
             else:

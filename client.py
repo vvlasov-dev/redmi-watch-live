@@ -411,7 +411,7 @@ class LiveClient:
                 # watch (advancedMonitoring is ON, confirmed) still can't build
                 # REM/deep stages — likely because we hog its HR sensor. Stop
                 # streaming so it runs its own sleep-HR analysis; re-arm near wake.
-                if not self.stream_gate() and self._realtime_on:
+                if self.authenticated and not self.stream_gate() and self._realtime_on:
                     try:
                         self._send_command(build_disable_realtime(), is_auth=False)
                     except Exception:
