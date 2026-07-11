@@ -292,6 +292,40 @@ def stop_sleep_session(manual=False):
             # auto-night must not restart a session the user just stopped
             S["sleep_session"]["manual_stop_ts"] = int(time.time())
         _save_sleep_session()
+    # finalize OUTSIDE the lock (Lock is not re-entrant; finalize re-acquires it)
+    return finalize_night()
+
+
+def finalize_night():
+    """Persist the finished night even when the watch never flips is_awake.
+
+    The watch sets is_awake=True only when IT closes its own sleep record, which
+    it frequently never does — so push_sleep's finished-gate never fires and the
+    night is lost from history (2026-07-09/10: REM=61/deep=59 measured live,
+    never stored). Our engine KNOWS the night is over when it stops the session
+    (wake alarm done), and the totals are final by then, so we store the merged
+    night here regardless of the flag. Returns the stored record (or None)."""
+    if not STORE_ON:
+        return None
+    with _lock:
+        rec = _merged_night() or S.get("sleep")
+        rec = dict(rec) if rec else None
+    if not rec or not rec.get("bed_ts") or not rec.get("wake_ts") \
+            or not rec.get("asleep_min"):
+        return None
+    rec["is_awake"] = True          # our engine closed the night
+    try:
+        store.upsert_sleep(rec)
+    except Exception:
+        return None
+    with _lock:                     # mirror into the in-memory history for /state
+        key = rec.get("bed_ts")
+        S["sleeps"] = [s for s in S["sleeps"]
+                       if (s.get("bed_ts") or s.get("date_ts", 0)) != key]
+        S["sleeps"].append(rec)
+        S["sleeps"].sort(key=lambda s: s.get("date_ts", 0))
+        S["sleeps"] = S["sleeps"][-200:]
+    return rec
 
 
 def _record_sleep_probe(kind, meta):

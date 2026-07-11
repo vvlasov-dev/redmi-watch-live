@@ -115,5 +115,24 @@ check("quiet night: awake hint => pause", a == "wait" and "пауза" in r)
 a, r, _ = se.decide([], CFG, [], T0 + 1800, 23, [], None)
 check("quiet night: no estimate => waiting for sleep", a == "wait" and "засыпания" in r)
 
+# --- 15. smart alarm wakes in LIGHT sleep, holds through REM/deep ---
+#        (2026-07-10: alarm fired in REM and sirened 30s after a lucid cue) ---
+check("alarm holds in REM (cede to lucid)", se._wake_ok_phase("rem", False) == "hold")
+check("alarm holds in deep (groggy wake)", se._wake_ok_phase("deep", False) == "hold")
+check("alarm fires in light sleep", se._wake_ok_phase("light", False) == "fire")
+check("alarm fires when awake", se._wake_ok_phase("awake", False) == "fire")
+check("no fresh stage => HR fallback", se._wake_ok_phase(None, False) == "try_hr")
+check("force (window end) overrides REM", se._wake_ok_phase("rem", True) == "fire")
+check("force overrides deep", se._wake_ok_phase("deep", True) == "fire")
+
+# --- 16. daytime reality-check cue: waking hours only, never while asleep ---
+NOW = 1_000_000
+check("daycue fires when due in waking hours", se._daycue_due(14, False, NOW, NOW - 1) is True)
+check("daycue holds before its time", se._daycue_due(14, False, NOW, NOW + 100) is False)
+check("daycue never during a sleep session", se._daycue_due(14, True, NOW, NOW - 1) is False)
+check("daycue silent before from_hour", se._daycue_due(8, False, NOW, NOW - 1) is False)
+check("daycue silent after to_hour", se._daycue_due(23, False, NOW, NOW - 1) is False)
+check("daycue unscheduled => no fire", se._daycue_due(14, False, NOW, None) is False)
+
 print("\n%s" % ("ALL ENGINE TESTS PASSED" if not FAILED else "%d ENGINE TEST(S) FAILED" % FAILED))
 sys.exit(1 if FAILED else 0)

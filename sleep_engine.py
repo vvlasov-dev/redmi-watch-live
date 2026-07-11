@@ -14,6 +14,7 @@ Safety-first design:
 The engine only reads dashboard state and enqueues "cue" commands; the client
 delivers them as quiet notification buzzes.
 """
+import random
 import threading
 import time
 
@@ -28,6 +29,7 @@ CFG = {
     "cue_gap_min": 25,         # minimum minutes between cues
     "window_end_hour": 10,     # local hour after which no cues are sent
     "fresh_sec": 900,          # a sleep file older than this is not "now"
+    "cue_pulses": 2,           # lucid cue = a 2-buzz signature (trainable awake)
 }
 
 # ---- nightly automation: session auto-start/stop ----
@@ -65,10 +67,27 @@ REM_HUNT = {
     "wake_after_min": 300,     # once in REM AND slept >= this, wake IN rem
 }
 
+# ---- daytime reality-check conditioning ----
+# Buzz the user with the SAME signature during waking hours; each time they do a
+# reality check ("am I dreaming?"), the association "this buzz = check reality"
+# is trained. At night the identical buzz fires in REM and triggers the reflex
+# in-dream -> lucidity. Offloads the practice from the user's memory onto the
+# watch (the user's own idea, 2026-07-10). Only works if they actually DO the
+# check each time, not ignore it.
+DAYCUE = {
+    "enabled": True,
+    "from_hour": 10,           # no buzzes before this (local)
+    "to_hour": 22,             # ...or after this (wind-down / pre-sleep)
+    "min_gap_min": 90,         # random gap between buzzes
+    "max_gap_min": 180,
+    "title": "Реальность?",
+    "body": "Ты спишь? Посмотри на руки, продави палец сквозь ладонь.",
+}
+
 # ---- runtime state (mirrored into /state for the UI) ----
 ST = {
     "armed": False, "reason": "выключено", "rem_live": False,
-    "cues": [], "last_check": 0,
+    "cues": [], "last_check": 0, "daycue_next": None,
 }
 
 LOG = lambda m: None   # service.py routes this into service.log
@@ -247,7 +266,10 @@ def _auto_tick(now):
                 return
             if now - (wk.get("night_over_ts") or 0) > 240:
                 LOG("auto-night: stopping sleep session (night file pulled)")
-                dashboard.stop_sleep_session()
+                rec = dashboard.stop_sleep_session()
+                if rec:
+                    LOG("auto-night: night stored (asleep=%s REM=%s deep=%s)"
+                        % (rec.get("asleep_min"), rec.get("rem_min"), rec.get("deep_min")))
                 arm(False)
 
 
@@ -265,9 +287,31 @@ def _awake_now(sess, now):
     if len(hrs) >= 10:
         base = (wk.get("hr_med") or 60)
         recent = sum(hrs[-10:]) / 10
-        if recent >= base + 18:
+        if recent >= base + 12:
             return True
     return False
+
+
+def _wake_ok_phase(cur, force):
+    """Which sleep phase may the smart alarm fire in?
+
+    Wake in LIGHT sleep, never in REM or DEEP. REM belongs to the lucid feature
+    (waking in REM is groggy AND collides head-on with the lucid cue, which is
+    what happened 2026-07-10: cue in REM, then sirens 30s later). Deep sleep is
+    the worst wake (max grogginess). `force` (window end) overrides everything so
+    we never oversleep.
+
+      'fire'   -> good moment, ring now
+      'hold'   -> wrong phase (REM/deep), wait for light
+      'try_hr' -> no fresh stage from the watch; fall back to the HR heuristic
+    """
+    if force:
+        return "fire"
+    if cur in ("rem", "deep"):
+        return "hold"
+    if cur in ("light", "wake", "awake"):
+        return "fire"
+    return "try_hr"
 
 
 def _is_night_session(sess, now):
@@ -322,10 +366,20 @@ def _wake_tick(now):
     if not ready and not wk.get("firing"):
         return
     if not wk.get("firing"):
-        # prefer a light/REM moment inside the window; force at window end
-        nice_moment = ST.get("rem_live") or overdue or asleep >= WAKE["after_min"] + WAKE["window_min"]
-        # light phase heuristic: recent HR at/above night median (not deep)
-        if not nice_moment:
+        # WAKE IN LIGHT SLEEP, NOT REM. Read the current phase from the freshest
+        # polled sleep file; hold through REM (lucid's turf) and deep sleep, fire
+        # on light. `force` at the window end guarantees we never oversleep.
+        force = overdue or asleep >= WAKE["after_min"] + WAKE["window_min"]
+        sf = [p for p in (sess.get("probes") or []) if p.get("kind") == "sleep_file"]
+        cur = sf[-1].get("cur_stage") if sf and now - sf[-1]["ts"] < CFG["fresh_sec"] else None
+        gate = _wake_ok_phase(cur, force)
+        if gate == "hold":
+            LOG("wake: holding — phase=%s (не бужу в REM/глубоком)" % cur)
+            return                      # in REM/deep -> wait for light sleep
+        nice_moment = gate == "fire"
+        # no fresh stage from the watch -> HR heuristic (light sleep sits near/
+        # above the night median; deep sits below). Never on a stale-REM guess.
+        if gate == "try_hr":
             hr_pts = [[m.get("ts"), m.get("hr")] for m in (dashboard.S.get("day_minutes") or [])
                       if m.get("ts") and m.get("hr") and m["ts"] >= night_start]
             if len(hr_pts) >= 30:
@@ -342,7 +396,7 @@ def _wake_tick(now):
         wk.update(firing=True, started=now, soft=0, sirens=0, last_sig=0,
                   steps0=latest.get("steps") or 0,
                   hr_med=(hrs[len(hrs) // 2] if hrs else 60))
-        LOG("wake: FIRING smart alarm (asleep=%d min)" % asleep)
+        LOG("wake: FIRING smart alarm (asleep=%d min, phase=%s)" % (asleep, cur or "?"))
         dashboard._save_sleep_session()
     # escalation loop
     if _awake_now(sess, now):
@@ -373,6 +427,44 @@ def _wake_tick(now):
     dashboard._save_sleep_session()
 
 
+def _daycue_due(hour, session_active, now, next_ts):
+    """Should a daytime reality-check cue fire now? Waking hours only, never
+    during a sleep session. next_ts=None means 'not scheduled yet' (caller
+    schedules the first one)."""
+    if not DAYCUE["enabled"] or session_active:
+        return False
+    if hour < DAYCUE["from_hour"] or hour >= DAYCUE["to_hour"]:
+        return False
+    return next_ts is not None and now >= next_ts
+
+
+def _schedule_daycue(now):
+    gap = random.randint(DAYCUE["min_gap_min"], DAYCUE["max_gap_min"]) * 60
+    ST["daycue_next"] = now + gap
+    return ST["daycue_next"]
+
+
+def _daycue_tick(now):
+    if not DAYCUE["enabled"]:
+        return
+    lt = time.localtime(now)
+    active = bool((dashboard.S.get("sleep_session") or {}).get("active"))
+    # outside the waking window (or asleep) -> (re)schedule the first buzz for
+    # when the window next opens; don't fire.
+    if active or lt.tm_hour < DAYCUE["from_hour"] or lt.tm_hour >= DAYCUE["to_hour"]:
+        ST["daycue_next"] = None
+        return
+    if ST.get("daycue_next") is None:
+        _schedule_daycue(now)           # first buzz of the day: random offset
+        return
+    if _daycue_due(lt.tm_hour, active, now, ST["daycue_next"]):
+        dashboard.queue_command({"kind": "cue", "pulses": CFG["cue_pulses"],
+                                 "title": DAYCUE["title"], "body": DAYCUE["body"]})
+        nxt = _schedule_daycue(now)
+        LOG("daycue: reality-check buzz sent, next ~%s"
+            % time.strftime("%H:%M", time.localtime(nxt)))
+
+
 def _tick():
     now = int(time.time())
     ST["last_check"] = now
@@ -380,6 +472,10 @@ def _tick():
         _auto_tick(now)
     except Exception as e:
         LOG("auto-night error: %s" % e)
+    try:
+        _daycue_tick(now)
+    except Exception as e:
+        LOG("daycue error: %s" % e)
     try:
         _wake_tick(now)
     except Exception as e:
@@ -425,8 +521,8 @@ def _tick():
         return
     if action == "cue":
         ST["cues"].append(now)
-        LOG("lucid: CUE #%d sent" % len(ST["cues"]))
-        dashboard.queue_command({"kind": "cue"})
+        LOG("lucid: CUE #%d sent (signature x%d)" % (len(ST["cues"]), CFG["cue_pulses"]))
+        dashboard.queue_command({"kind": "cue", "pulses": CFG["cue_pulses"]})
         _mirror()
         try:
             with dashboard._lock:

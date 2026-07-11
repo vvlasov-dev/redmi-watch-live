@@ -285,8 +285,24 @@ class LiveClient:
             self._send_command(build_vibrate(False), is_auth=False)
             log("vibrate: stop find-watch alert")
         elif kind == "cue":
-            self._send_command(build_gentle_cue(), is_auth=False)
-            log("cue: gentle notification buzz")
+            # signature = a consistent multi-buzz pattern (default 1, lucid uses
+            # 2), so it can be TRAINED awake ("this buzz = I'm dreaming") and is
+            # more distinct in-dream than a single buzz. Kept gentle (the
+            # notification buzz, never the loud siren). The BUZZ pattern is the
+            # conditioned stimulus and is identical day and night; a daytime cue
+            # may add reminder text (title/body) — in a dream there's no screen,
+            # so only the buzz transfers.
+            pulses = max(1, min(int(spec.get("pulses") or 1), 2))
+            title, body = spec.get("title"), spec.get("body")
+            for i in range(pulses):
+                if i:
+                    time.sleep(2.5)     # short, fixed gap = the recognisable pattern
+                if title or body:
+                    self._send_command(build_notification(title or " ", body or " ",
+                                                          app_name="Sleep"), is_auth=False)
+                else:
+                    self._send_command(build_gentle_cue(), is_auth=False)
+            log("cue: gentle buzz signature x%d%s" % (pulses, " (daytime RC)" if title else ""))
         elif kind == "hr_config_get":
             self._send_command(build_hr_config_get(), is_auth=False)
             log("hr_config: requested current config")
@@ -421,12 +437,18 @@ class LiveClient:
                 if (self.authenticated and self.live and self.stream_gate()
                         and now - self.last_rx > 12
                         and time.time() - self.last_arm >= 15):
+                    was_dark = not self._realtime_on
                     self.last_arm = time.time()
                     self._realtime_on = True
                     try:
                         self._send_command(build_enable_realtime(), is_auth=False)
                     except Exception:
                         pass
+                    if was_dark:
+                        # OFF->ON: streaming resumed (night over / wake window) —
+                        # log it so the morning review can confirm the wake alarm
+                        # had live HR to detect that the user actually woke.
+                        log("realtime: ON (stream resumed — wake/day)")
                 # push any queued notifications to the watch
                 if self.authenticated:
                     for note in (self.take_notifications() or []):
