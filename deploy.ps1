@@ -35,7 +35,9 @@ Start-Sleep -Milliseconds 900
 Write-Host "==> syncing source -> $dst" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $dst | Out-Null
 foreach ($f in $code) { if (Test-Path "$src\$f") { Copy-Item "$src\$f" "$dst\$f" -Force } }
-if (Test-Path "$src\vendor") { Copy-Item "$src\vendor" $dst -Recurse -Force }
+if (Test-Path "$src\vendor")    { Copy-Item "$src\vendor"    $dst -Recurse -Force }
+if (Test-Path "$src\core")      { Copy-Item "$src\core"      $dst -Recurse -Force }
+if (Test-Path "$src\features")  { Copy-Item "$src\features"  $dst -Recurse -Force }
 
 # config.json: only seed it on first deploy; never clobber the user's runtime mode
 if (-not (Test-Path "$dst\config.json")) {

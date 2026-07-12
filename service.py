@@ -11,10 +11,10 @@ import sys
 import time
 from logging.handlers import RotatingFileHandler
 
-import client as c
+import core.client as c
 import dashboard
 import notify
-import sleep_engine
+import features.sleep.engine as sleep_engine
 
 import re
 

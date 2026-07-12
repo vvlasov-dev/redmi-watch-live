@@ -10,13 +10,12 @@ import json
 import os
 import threading
 import time
-from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import store
+from core.state import S, _lock, _SESS_FILE, _save_sleep_session  # noqa: F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-_lock = threading.Lock()
 MAX_HR = 190
 MODE = "live"
 DEVICE = {"model": "Redmi Watch 5 Active", "mac": "", "port": ""}
@@ -26,30 +25,6 @@ _VENDOR_MAP = {
     "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js": "/vendor/babel.min.js",
     "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "/vendor/react.production.min.js",
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "/vendor/react-dom.production.min.js",
-}
-S = {
-    "session_start": None, "count": 0, "last_ts": 0, "last_hr_ts": 0,
-    "hr_min": None, "hr_max": None, "hr_sum": 0, "hr_n": 0,
-    "steps_first": None, "steps_last": 0, "cal_last": 0, "standing_last": 0,
-    "latest": {"ts": 0, "heartRate": 0, "steps": 0, "calories": 0, "standingHours": 0},
-    "series": deque(maxlen=5000),
-    "zone_sec": [0, 0, 0, 0, 0],
-    # health history (from the daily-summary activity file) + battery
-    "battery": None,            # {"level": int, "charging": bool}
-    "health": None,             # today's parsed daily summary
-    "health_ts": 0,            # when the daily summary was received
-    "days": [],                 # recent daily summaries (most recent last)
-    "sleep": None,              # most recent parsed sleep record
-    "sleeps": [],               # recent nights (for sleep-consistency insights)
-    "device_state": None,       # live {asleep, worn, sleep_state, wearing}
-    "device_state_ts": 0,
-    "hr_config": None,          # {advanced, interval, breathing, disabled}
-    "hr_config_ts": 0,
-    # sleep-engine harvester: verify what the watch exposes mid-sleep
-    "sleep_session": {"active": False, "start_ts": 0, "last_harvest": 0,
-                      "probes": [], "cues_sent": 0},
-    "day_minutes": [],          # today's per-minute detail series (hr/steps/spo2/stress)
-    "last_sync": 0,             # unix ts of last completed sync
 }
 
 
@@ -242,17 +217,6 @@ def push_device_state(st):
 
 # wired by service.py to sleep_engine (registration avoids a circular import)
 LUCID = {"snapshot": lambda: None, "arm": lambda e: None}
-
-_SESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".sleep_session.json")
-
-
-def _save_sleep_session():
-    try:
-        with open(_SESS_FILE, "w", encoding="utf-8") as f:
-            json.dump(S["sleep_session"], f, ensure_ascii=False)
-    except Exception:
-        pass
-
 
 def load_sleep_session():
     """Restore the sleep session after a service restart.

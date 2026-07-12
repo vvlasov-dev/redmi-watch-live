@@ -11,7 +11,7 @@ import types
 sys.modules['dashboard'] = types.SimpleNamespace(S={}, queue_command=lambda c: None,
                                                  _lock=None, _record_sleep_probe=lambda *a: None,
                                                  _save_sleep_session=lambda: None)
-import sleep_engine as se
+import features.sleep.engine as se
 
 FAILED = 0
 
