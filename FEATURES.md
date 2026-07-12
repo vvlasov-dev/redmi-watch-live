@@ -51,10 +51,10 @@ order. See `core/router.py` header.
 ## Frontend (`index.dc.html` — Claude Design Canvas, monolithic)
 
 Still one `text/x-dc` script: shared chart builders + monolithic `renderVals()`.
-The per-feature split (`app/shell.html` + `renderVals` → `render<Feature>()`)
-and the **todos panel** are the remaining frontend work — needs a browser in the
-loop (see `docs/MIGRATION.md`). No todos UI yet; the backend is done and
-reachable at `/todos`.
+The **todos panel** ships (card between the sleep helper and Trends: add/check/
+delete + "Показать на часах" → native watch reminders). The remaining frontend
+work is the per-feature split (`app/shell.html` + `renderVals` → `render<F>()`)
+and a per-task time picker (todos `due_ts`) — see `docs/MIGRATION.md`.
 
 ## Not built / blocked
 
