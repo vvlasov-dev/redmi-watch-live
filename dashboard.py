@@ -10,7 +10,7 @@ import json
 import os
 import time
 
-import store
+import core.store as store
 from core import router
 from core import watch_io
 from core.state import S, _lock, _SESS_FILE, _save_sleep_session  # noqa: F401

@@ -19,7 +19,7 @@ import threading
 import time
 
 import dashboard
-import store
+import core.store as store
 
 # ---- config (UI-editable via /lucid endpoints) ----
 CFG = {

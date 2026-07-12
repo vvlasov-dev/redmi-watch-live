@@ -20,10 +20,10 @@ if (-not $SkipTests) {
 
 # Code/asset files that are always synced. config.json, history.db and logs
 # live only in the runtime folder and are intentionally NOT overwritten.
-$code = 'activity.py','client.py','dashboard.py','service.py','notify.py','store.py',
+$code = 'activity.py','client.py','dashboard.py','service.py','notify.py',
         'miniproto.py','spp.py','xcrypto.py','index.dc.html','support.js','svc.vbs',
         'watchicon.py','watch_send.py','tray.py','tray.vbs',
-        'morning_report.py','sleep_engine.py','demo_state.py','test_sleep_engine.py','run_tests.py',
+        'morning_report.py','demo_state.py','test_sleep_engine.py','run_tests.py',
         'requirements.txt','README.md'
 
 Write-Host "==> stopping running service" -ForegroundColor Cyan
