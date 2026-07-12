@@ -435,6 +435,11 @@ def request_sync(min_gap=8):
         return True
 
 
+def is_connected():
+    with _lock:
+        return (time.time() - S["last_ts"]) < 25 if S["last_ts"] else False
+
+
 def sync_allowed():
     """QUIET NIGHT: every activity fetch is logged by the watch as a 1-minute
     awakening (14/14 correlation, 2026-07-07) and breaks its stage detection.
@@ -573,6 +578,11 @@ def push_reminder_ack(rid, sub):
         if rid not in _watch_rids:
             _watch_rids.append(rid)
         _save_watch_rids()
+    try:                       # bind the id to the todo it was created for
+        import features.todos.engine as _te
+        _te.on_reminder_ack(rid)
+    except Exception:
+        pass
 
 
 def clear_watch_reminders():
@@ -583,6 +593,26 @@ def clear_watch_reminders():
         _watch_rids = []
         _save_watch_rids()
     return old
+
+
+_watch_reminders_seen = {"ts": 0, "list": None}   # last GET reply from the watch
+
+
+def push_reminders_list(lst):
+    with _lock:
+        _watch_reminders_seen["ts"] = int(time.time())
+        _watch_reminders_seen["list"] = lst
+    # let the todos feature reconcile watch->PC (done/deleted on the wrist)
+    try:
+        import features.todos.engine as _te
+        _te.reconcile_from_watch(lst)
+    except Exception:
+        pass
+
+
+def watch_reminders_seen():
+    with _lock:
+        return dict(_watch_reminders_seen)
 
 
 def _zone_idx(hr):
@@ -778,6 +808,11 @@ def _r_reminder_delete(h):
     h._send(json.dumps({"ok": True}))
 
 
+def _r_reminder_list(h):
+    queue_command({"kind": "reminders_get"})   # refresh async
+    h._send(json.dumps(watch_reminders_seen()))   # last-known (id+title)
+
+
 # ---- GET: core (state / data / sync / export / static) ----
 def _r_state_demo(h):
     try:
@@ -862,6 +897,7 @@ router.register("POST", "/vibrate/stop", _r_vibrate_stop)
 router.register("POST", "/vibrate", _r_vibrate)
 router.register("POST", "/alarm/delete", _r_alarm_delete)
 router.register("POST", "/alarm", _r_alarm)
+router.register("GET", "/reminder/list", _r_reminder_list)
 router.register("POST", "/reminder/delete", _r_reminder_delete)
 router.register("POST", "/reminder", _r_reminder)
 router.register("GET", "/state_demo", _r_state_demo)

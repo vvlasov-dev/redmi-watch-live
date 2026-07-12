@@ -109,6 +109,23 @@ dashboard.LUCID["snapshot"] = sleep_engine.snapshot
 dashboard.LUCID["arm"] = sleep_engine.arm
 sleep_engine.LOG = log
 sleep_engine.start()
+
+# background two-way todos<->watch sync (pushes PC edits, polls wrist completions);
+# silent during sleep (quiet night) and when disconnected
+import threading as _threading
+import features.todos.engine as _todos
+
+
+def _todos_sync_loop():
+    while True:
+        try:
+            _todos.tick(dashboard.is_connected(), not dashboard.sync_allowed())
+        except Exception as e:
+            log("todos sync error: %s" % e)
+        time.sleep(20)
+
+
+_threading.Thread(target=_todos_sync_loop, daemon=True).start()
 dashboard.configure(max_hr=MAX_HR, mode=MODE, device={
     "model": cfg.get("model", "Redmi Watch 5 Active"),
     "mac": cfg.get("mac", ""),
@@ -271,6 +288,7 @@ while True:
                           on_details=on_details, on_device_state=on_device_state,
                           on_hr_config=on_hr_config,
                           on_reminder_ack=dashboard.push_reminder_ack,
+                          on_reminders_list=dashboard.push_reminders_list,
                           should_sync=dashboard.take_sync_request,
                           sync_gate=dashboard.sync_allowed,
                           stream_gate=dashboard.stream_allowed,

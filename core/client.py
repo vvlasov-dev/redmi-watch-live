@@ -201,11 +201,32 @@ def build_delete_reminders(ids) -> bytes:
     return mp.f_varint(1, 17) + mp.f_varint(2, 18) + mp.f_message(19, mp.f_message(17, dele))
 
 
+def build_reminders_get() -> bytes:
+    # Command{ type=17, subtype=14 } -> reply schedule.reminders(10)=Reminders{ reminder[], maxReminders }
+    return mp.f_varint(1, 17) + mp.f_varint(2, 14)
+
+
+def parse_reminders(sched_bytes) -> list:
+    # Schedule.reminders(10)=Reminders{ reminder(1) repeated =Reminder{id(1), details(2)=ReminderDetails{title(5)}} }
+    rem = mp.get1(sched_bytes, 10, b"")
+    rd = mp.decode(rem) if rem else {}
+    out = []
+    for r in (rd.get(1) or []):
+        rr = mp.decode(r)
+        rid = mp.get1(rr, 1)
+        det = mp.get1(rr, 2, b"")
+        title = mp.get1(mp.decode(det), 5, b"") if det else b""
+        if isinstance(title, (bytes, bytearray)):
+            title = title.decode("utf-8", "ignore")
+        out.append({"id": rid, "title": title})
+    return out
+
+
 class LiveClient:
     def __init__(self, port, auth_key, on_sample=None, on_battery=None,
                  on_daily=None, on_sync=None, on_sleep=None, on_details=None,
                  on_device_state=None, on_hr_config=None, should_sync=None, sync_gate=None,
-                 stream_gate=None, on_reminder_ack=None,
+                 stream_gate=None, on_reminder_ack=None, on_reminders_list=None,
                  take_notifications=None, take_commands=None, capture_dir=None,
                  sync_interval=1800, live=True, debug=False):
         self.port_name = port
@@ -219,6 +240,7 @@ class LiveClient:
         self.on_device_state = on_device_state or (lambda st: None)
         self.on_hr_config = on_hr_config or (lambda c: None)
         self.on_reminder_ack = on_reminder_ack or (lambda rid, sub: None)
+        self.on_reminders_list = on_reminders_list or (lambda lst: None)
         self._hr_cfg = {}
         self.stream_gate = stream_gate or (lambda: True)   # False = go dark (sleep)
         self._realtime_on = True
@@ -369,6 +391,9 @@ class LiveClient:
             ids = spec.get("ids") or list(range(1, 51))
             self._send_command(build_delete_reminders(ids), is_auth=False)
             log("reminder: delete %s", ids)
+        elif kind == "reminders_get":
+            self._send_command(build_reminders_get(), is_auth=False)
+            log("reminder: GET list requested")
 
     # ---------- notification icon upload (DataUpload over the Data channel) ----------
     def _send_data_chunk(self, chunk: bytes):
@@ -711,13 +736,18 @@ class LiveClient:
                     "standingHours": mp.get1(rts, 6, 0),
                 }
                 self.on_sample(sample)
-        elif ctype == 17:  # schedule reply — capture the created alarm/reminder id
+        elif ctype == 17:  # schedule reply — created-id ack + reminders-list (GET)
             sched = mp.get1(d, 19, b"")
             sd = mp.decode(sched) if sched else {}
             ack = mp.get1(sd, 4)   # Schedule.ackId = id of the just-created item
             if ack is not None:
                 log("schedule: ack id=%s (sub=%s)", ack, subtype)
                 self.on_reminder_ack(int(ack), subtype)
+            if 10 in sd:           # Schedule.reminders = GET reply with the full list
+                lst = parse_reminders(sd)
+                log("schedule: reminders list (%d): %s"
+                    % (len(lst), [r["id"] for r in lst]))
+                self.on_reminders_list(lst)
 
 
 # ---------- optional live web dashboard ----------

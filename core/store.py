@@ -41,6 +41,12 @@ def init(path):
             created_ts INTEGER, done_ts INTEGER);
         """
     )
+    # migrations: add columns to a pre-existing todos table (IF NOT EXISTS won't)
+    for col, decl in (("watch_rid", "INTEGER"), ("due_ts", "INTEGER")):
+        try:
+            _db.execute("ALTER TABLE todos ADD COLUMN %s %s" % (col, decl))
+        except Exception:
+            pass   # already there
     _db.commit()
     return _db
 
@@ -51,10 +57,21 @@ def todos_all():
         return []
     with _lock:
         cur = _db.execute(
-            "SELECT id,text,done,ord,created_ts,done_ts FROM todos ORDER BY done, ord, id")
+            "SELECT id,text,done,ord,created_ts,done_ts,watch_rid,due_ts "
+            "FROM todos ORDER BY done, ord, id")
         rows = cur.fetchall()
     return [{"id": r[0], "text": r[1], "done": bool(r[2]), "ord": r[3],
-             "created_ts": r[4], "done_ts": r[5]} for r in rows]
+             "created_ts": r[4], "done_ts": r[5], "watch_rid": r[6], "due_ts": r[7]}
+            for r in rows]
+
+
+def todos_set_watch_rid(tid, rid):
+    if _db is None:
+        return
+    with _lock:
+        _db.execute("UPDATE todos SET watch_rid=? WHERE id=?",
+                    (int(rid) if rid is not None else None, int(tid)))
+        _db.commit()
 
 
 def todos_add(text, ord=None):
