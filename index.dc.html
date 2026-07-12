@@ -75,11 +75,18 @@
       </div>
     </header>
 
+    <nav style="flex-shrink:0;border-bottom:1px solid var(--border);padding:0 26px;display:flex;gap:2px;background:color-mix(in srgb,var(--bg) 82%,transparent);">
+      <button onClick="{{ tabNowSet }}" style="{{ tabNowStyle }}" style-hover="color:var(--text);">Сейчас</button>
+      <button onClick="{{ tabSleepSet }}" style="{{ tabSleepStyle }}" style-hover="color:var(--text);">Сон</button>
+      <button onClick="{{ tabHealthSet }}" style="{{ tabHealthStyle }}" style-hover="color:var(--text);">Здоровье</button>
+    </nav>
+
     <div style="flex:1;overflow-y:auto;padding:26px;">
 
       <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
         <div data-screen-label="Overview" style="max-width:1440px;margin:0 auto;animation:fadeUp .4s ease both;display:grid;grid-template-columns:repeat(12,1fr);gap:16px;">
 
+          <sc-if value="{{ tabNow }}">
           <!-- HERO: heart rate over the day -->
           <div style="grid-column:span 8;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:24px 26px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;">
@@ -143,6 +150,8 @@
             </sc-for>
           </div>
 
+          </sc-if>
+          <sc-if value="{{ tabHealth }}">
           <!-- Insights: personal deltas vs your own baseline -->
           <sc-if value="{{ hasInsights }}" hint-placeholder-val="{{ true }}">
             <div style="grid-column:span 12;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">
@@ -199,6 +208,8 @@
             <div style="font-size:11px;color:var(--text-3);margin-top:8px;">мин {{ spo2Min }}% · макс {{ spo2Max }}% · {{ spo2Measures }}</div>
           </div>
 
+          </sc-if>
+          <sc-if value="{{ tabSleep }}">
           <!-- Alarm + vibrate (commands to the watch) -->
           <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;">
             <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-right:4px;">Будильник и вибро</div>
@@ -265,6 +276,8 @@
             </sc-if>
           </div>
 
+          </sc-if>
+          <sc-if value="{{ tabNow }}">
           <!-- Todos -->
           <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 24px;">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
@@ -283,6 +296,8 @@
             <div>{{ todosEl }}</div>
           </div>
 
+          </sc-if>
+          <sc-if value="{{ tabHealth }}">
           <!-- Trends: 7д / 30д / 12м -->
           <sc-if value="{{ hasWeek }}" hint-placeholder-val="{{ true }}">
             <div style="grid-column:span 12;display:flex;align-items:center;gap:8px;margin:-4px 0;">
@@ -331,6 +346,8 @@
             </div>
           </sc-if>
 
+          </sc-if>
+          <sc-if value="{{ tabSleep }}">
           <!-- Sleep (only when a night was synced) -->
           <sc-if value="{{ hasSleep }}" hint-placeholder-val="{{ true }}">
             <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:22px 24px;">
@@ -365,6 +382,7 @@
 
         </div>
       </sc-if>
+          </sc-if>
 
 
     </div>
@@ -373,7 +391,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:840},&quot;startTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Оформление&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;blue&quot;,&quot;green&quot;,&quot;mono&quot;],&quot;default&quot;:&quot;blue&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Оформление&quot;},&quot;showInsight&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Оформление&quot;}}">
 class Component extends DCLogic {
-  state = { page: 'overview', theme: null };
+  state = { page: 'overview', theme: null, tab: 'now' };
 
   // ---- data ----
   // Seed/placeholder series — shown only until the first live /state arrives;
@@ -1082,9 +1100,21 @@ class Component extends DCLogic {
       );
     }
 
+    // ---- tabs (Сейчас / Сон / Здоровье) ----
+    const _tab = this.state.tab || 'now';
+    const _tabStyle = (on) => 'background:none;border:none;border-bottom:2px solid '
+      + (on ? 'var(--accent)' : 'transparent')
+      + ';padding:13px 15px;font:600 13px Geist;cursor:pointer;margin-bottom:-1px;color:'
+      + (on ? 'var(--text)' : 'var(--text-3)') + ';';
+
     return {
       theme:this.theme,
       accent:this.props.accent||'blue',
+      tabNow:_tab==='now', tabSleep:_tab==='sleep', tabHealth:_tab==='health',
+      tabNowStyle:_tabStyle(_tab==='now'), tabSleepStyle:_tabStyle(_tab==='sleep'),
+      tabHealthStyle:_tabStyle(_tab==='health'),
+      tabNowSet:()=>this.setState({tab:'now'}), tabSleepSet:()=>this.setState({tab:'sleep'}),
+      tabHealthSet:()=>this.setState({tab:'health'}),
       todosEl, todoCountLabel,
       todoAdd:()=>this.todoAdd(), todoPush:()=>this.todoPush(),
       showInsight:this.props.showInsight!==false,
