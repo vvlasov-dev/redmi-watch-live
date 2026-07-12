@@ -265,6 +265,24 @@
             </sc-if>
           </div>
 
+          <!-- Todos -->
+          <div style="grid-column:span 12;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+              <div style="width:42px;height:42px;border-radius:13px;background:color-mix(in oklab, var(--accent) 14%, var(--panel-2));display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <div style="width:15px;height:15px;border:2px solid var(--accent);border-radius:4px;"></div>
+              </div>
+              <div style="min-width:110px;">
+                <div style="font-size:14.5px;font-weight:600;letter-spacing:-.01em;">Задачи</div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:3px;">{{ todoCountLabel }}</div>
+              </div>
+              <div style="flex:1;"></div>
+              <input id="rw_todo_input" placeholder="Новая задача…" style="background:var(--panel-2);border:1px solid var(--border);border-radius:9px;color:var(--text);font:500 13px Geist;padding:9px 12px;min-width:180px;flex:1;max-width:340px;">
+              <button onClick="{{ todoAdd }}" style="{{ primBtnStyle }}" style-hover="filter:brightness(1.1);">Добавить</button>
+              <button onClick="{{ todoPush }}" style="{{ syncBtnStyle }}" style-hover="border-color:var(--border-2);color:var(--text);">Показать на часах</button>
+            </div>
+            <div>{{ todosEl }}</div>
+          </div>
+
           <!-- Trends: 7д / 30д / 12м -->
           <sc-if value="{{ hasWeek }}" hint-placeholder-val="{{ true }}">
             <div style="grid-column:span 12;display:flex;align-items:center;gap:8px;margin:-4px 0;">
@@ -393,6 +411,18 @@ class Component extends DCLogic {
   _flash(msg){ this._alarmMsg=msg; this.setState({_a:Date.now()}); setTimeout(()=>{this._alarmMsg='';this.setState({_a:0});},4000); }
   vibrate(){ fetch('/vibrate',{method:'POST'}).then(()=>this._flash('Громкий сигнал (поиск часов) отправлен')).catch(()=>this._flash('Часы недоступны')); }
   stopVibrate(){ fetch('/vibrate/stop',{method:'POST'}).then(()=>this._flash('Сигнал остановлен')).catch(()=>this._flash('Часы недоступны')); }
+  // ---- todos (PC-edited task list; mirrored to the watch on demand) ----
+  _todosInit(){ if(this._ti) return; this._ti=true; this._todoPull();
+    setTimeout(()=>{const i=document.getElementById('rw_todo_input');
+      if(i&&!i._wired){i._wired=true;i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.todoAdd();}});}},600); }
+  _todoPull(){ fetch('/todos',{cache:'no-store'}).then(r=>r.json()).then(d=>{this.TODOS=d.todos||[];this.setState({_td:Date.now()});}).catch(()=>{}); }
+  _todoPost(path,body){ return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})
+    .then(r=>r.json()).then(d=>{if(d&&d.todos){this.TODOS=d.todos;this.setState({_td:Date.now()});}return d;}); }
+  todoAdd(){ const i=document.getElementById('rw_todo_input'); const t=i&&i.value.trim(); if(!t)return;
+    this._todoPost('/todos/add',{text:t}).then(()=>{if(i)i.value='';}); }
+  todoToggle(id){ this._todoPost('/todos/toggle',{id}); }
+  todoDelete(id){ this._todoPost('/todos/delete',{id}); }
+  todoPush(){ fetch('/todos/push',{method:'POST'}).then(()=>this._flash('Задачи отправлены на часы')).catch(()=>this._flash('Часы недоступны')); }
   gentleCue(){ fetch('/cue',{method:'POST'}).then(()=>this._flash('Мягкий сигнал (сон) отправлен')).catch(()=>this._flash('Часы недоступны')); }
   setAlarm(){
     const t=(document.getElementById('rw_alarm_time')||{}).value||'07:00';
@@ -654,6 +684,7 @@ class Component extends DCLogic {
     const page=this.state.page;
     // live overrides
     this._liveInit();
+    this._todosInit();
     const L=this.LIVE, st=(L&&L.stats)||{};
     const lhr=this.liveHRArr(); if(lhr) this.HR=lhr;
     // real per-minute day curves from synced history override the mock arrays
@@ -1024,9 +1055,35 @@ class Component extends DCLogic {
     const hasProbes=probeRows.length>0;
     const nightTitle = sleepActive ? 'пульс с начала записи' : 'прошлая сессия · пульс за ночь';
 
+    // ---- todos panel ----
+    const _RT=React.createElement, _todos=this.TODOS||[];
+    const _nOpen=_todos.filter(t=>!t.done).length, _nDone=_todos.length-_nOpen;
+    const todoCountLabel=_todos.length
+      ? (_nOpen+' открытых'+(_nDone?(' · '+_nDone+' готово'):''))
+      : 'нет задач';
+    let todosEl;
+    if(!_todos.length){
+      todosEl=_RT('div',{style:{padding:'8px 2px',color:'var(--text-3)',font:'500 13px Geist'}},'Список пуст — добавь первую задачу');
+    } else {
+      todosEl=_RT('div',{style:{display:'flex',flexDirection:'column'}},
+        _todos.map(t=>_RT('div',{key:t.id,style:{display:'flex',alignItems:'center',gap:'11px',padding:'9px 4px',borderBottom:'1px solid var(--border)'}},
+          _RT('button',{onClick:()=>this.todoToggle(t.id),title:'отметить',
+            style:{width:'19px',height:'19px',flexShrink:0,borderRadius:'6px',cursor:'pointer',padding:0,
+              border:'1.5px solid '+(t.done?'var(--move)':'var(--border-2)'),
+              background:t.done?'var(--move)':'transparent',color:'#000',font:'700 12px Geist',lineHeight:'15px'}}, t.done?'✓':''),
+          _RT('span',{style:{flex:1,font:'500 13.5px Geist',minWidth:0,wordBreak:'break-word',
+            color:t.done?'var(--text-3)':'var(--text)',textDecoration:t.done?'line-through':'none'}}, t.text),
+          _RT('button',{onClick:()=>this.todoDelete(t.id),title:'удалить',
+            style:{flexShrink:0,background:'none',border:'none',cursor:'pointer',color:'var(--text-3)',font:'600 17px Geist',padding:'0 4px',lineHeight:1}}, '×')
+        ))
+      );
+    }
+
     return {
       theme:this.theme,
       accent:this.props.accent||'blue',
+      todosEl, todoCountLabel,
+      todoAdd:()=>this.todoAdd(), todoPush:()=>this.todoPush(),
       showInsight:this.props.showInsight!==false,
       pageTitle:titles[page]||'Обзор',
       hrNow, hrRest, hrMax:hrMaxV, stepsNow, calNow, syncLabel, statusDotStyle, sleepBed, sleepWake,
