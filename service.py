@@ -15,6 +15,7 @@ import core.client as c
 import dashboard
 import notify
 import features.sleep.engine as sleep_engine
+import features.sleep.routes  # noqa: F401 — registers /sleep,/lucid,/cue,/health routes
 
 import re
 

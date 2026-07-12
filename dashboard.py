@@ -8,11 +8,10 @@ and a capped time series. Serves a single-page app + JSON endpoints:
 """
 import json
 import os
-import threading
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import store
+from core import router
 from core.state import S, _lock, _SESS_FILE, _save_sleep_session  # noqa: F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -691,160 +690,136 @@ def snapshot():
         }
 
 
-class Handler(BaseHTTPRequestHandler):
-    def log_message(self, *a):
-        pass
+# ---------- HTTP routes (registered into core.router; order = specific first) ----------
+# Handlers take the live request handler `h` and use h._send / h._read_json.
 
-    def _send(self, body, ctype="application/json"):
-        if isinstance(body, str):
-            body = body.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Cache-Control", "no-store")   # deploys must show up on plain reload
-        self.end_headers()
-        self.wfile.write(body)
+# ---- POST: watch-io (notify / vibrate / alarm) — becomes core/watch_io in a later step ----
+def _r_notify(h):
+    p = h._read_json()
+    queue_notification(p.get("title", "Claude Code"), p.get("body", ""), p.get("app", "Claude Code"))
+    h._send(json.dumps({"ok": True}))
 
-    def _read_json(self):
-        ln = int(self.headers.get("Content-Length", 0) or 0)
-        raw = self.rfile.read(ln) if ln else b"{}"
-        return json.loads(raw or b"{}")
 
-    def do_POST(self):
-        try:
-            if self.path.startswith("/notify"):
-                p = self._read_json()
-                queue_notification(p.get("title", "Claude Code"), p.get("body", ""), p.get("app", "Claude Code"))
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/vibrate/stop"):
-                queue_command({"kind": "vibrate_stop"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/vibrate"):
-                queue_command({"kind": "vibrate"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/cue"):
-                queue_command({"kind": "cue"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/health/hrcfg_get"):
-                queue_command({"kind": "hr_config_get"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/health/advanced_on"):
-                queue_command({"kind": "hr_config_get"})   # refresh first
-                queue_command({"kind": "advanced_on"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/lucid/on"):
-                LUCID["arm"](True)
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/lucid/off"):
-                LUCID["arm"](False)
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/sleep/start"):
-                start_sleep_session()
-                LUCID["arm"](True)   # recording implies REM cues — one button
-                request_sync()       # kick off an immediate harvest baseline
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/sleep/stop"):
-                stop_sleep_session(manual=True)
-                LUCID["arm"](False)
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/alarm/delete"):
-                queue_command({"kind": "delete_alarms"})
-                self._send(json.dumps({"ok": True}))
-                return
-            if self.path.startswith("/alarm"):
-                p = self._read_json()
-                queue_command({"kind": "alarm", "hour": int(p.get("hour", 7)),
-                               "minute": int(p.get("minute", 0)),
-                               "repeat": p.get("repeat", "once"),
-                               "enabled": bool(p.get("enabled", True))})
-                self._send(json.dumps({"ok": True}))
-                return
-        except Exception as e:
-            self._send(json.dumps({"ok": False, "error": str(e)}))
-            return
-        self.do_GET()
+def _r_vibrate_stop(h):
+    queue_command({"kind": "vibrate_stop"})
+    h._send(json.dumps({"ok": True}))
 
-    def _export_csv(self):
-        cols = ["date_ts", "date", "steps", "calories", "hr_resting", "hr_avg", "hr_max", "hr_min",
-                "spo2_avg", "spo2_max", "spo2_min", "stress_avg", "stress_max", "stress_min",
-                "standing_hours", "vitality"]
-        lines = [",".join(cols)]
-        with _lock:
-            days = list(S["days"])
-        for d in days:
-            ts = d.get("date_ts") or 0
-            date = time.strftime("%Y-%m-%d", time.localtime(ts)) if ts else ""
-            row = [str(ts), date] + [str(d.get(c, "") if d.get(c) is not None else "") for c in cols[2:]]
-            lines.append(",".join(row))
-        body = ("\n".join(lines) + "\n").encode("utf-8")
-        fname = "redmi_watch_history_%s.csv" % time.strftime("%Y%m%d")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/csv; charset=utf-8")
-        self.send_header("Content-Disposition", 'attachment; filename="%s"' % fname)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
 
-    def do_GET(self):
-        if self.path.startswith("/state_demo"):
-            try:
-                import importlib
-                import demo_state
-                importlib.reload(demo_state)   # demo tweaks apply without a service restart
-                self._send(json.dumps(demo_state.build()))
-            except Exception as e:
-                self._send(json.dumps({"error": str(e)}))
-        elif self.path.startswith("/state"):
-            self._send(json.dumps(snapshot()))
-        elif self.path.startswith("/sync"):
-            queued = request_sync()
-            self._send(json.dumps({"ok": True, "queued": queued}))
-        elif self.path.startswith("/export"):
-            self._export_csv()
-        elif self.path.startswith("/data"):
-            self._send(json.dumps(S["latest"]))
-        elif self.path.startswith("/support.js"):
-            try:
-                with open(os.path.join(HERE, "support.js"), "r", encoding="utf-8") as f:
-                    js = f.read()
-                for a, b in _VENDOR_MAP.items():
-                    js = js.replace(a, b)
-                self._send(js, "application/javascript; charset=utf-8")
-            except OSError:
-                self._send("// support.js missing", "application/javascript")
-        elif self.path.startswith("/vendor/"):
-            name = os.path.basename(self.path.split("?")[0])
-            fp = os.path.join(HERE, "vendor", name)
-            if os.path.isfile(fp):
-                with open(fp, "rb") as f:
-                    self._send(f.read(), "application/javascript; charset=utf-8")
-            else:
-                self.send_response(404)
-                self.end_headers()
-        else:
-            try:
-                with open(os.path.join(HERE, "index.dc.html"), "rb") as f:
-                    self._send(f.read(), "text/html; charset=utf-8")
-            except OSError:
-                self._send(PAGE, "text/html; charset=utf-8")
+def _r_vibrate(h):
+    queue_command({"kind": "vibrate"})
+    h._send(json.dumps({"ok": True}))
+
+
+def _r_alarm_delete(h):
+    queue_command({"kind": "delete_alarms"})
+    h._send(json.dumps({"ok": True}))
+
+
+def _r_alarm(h):
+    p = h._read_json()
+    queue_command({"kind": "alarm", "hour": int(p.get("hour", 7)),
+                   "minute": int(p.get("minute", 0)),
+                   "repeat": p.get("repeat", "once"),
+                   "enabled": bool(p.get("enabled", True))})
+    h._send(json.dumps({"ok": True}))
+
+
+# ---- GET: core (state / data / sync / export / static) ----
+def _r_state_demo(h):
+    try:
+        import importlib
+        import demo_state
+        importlib.reload(demo_state)   # demo tweaks apply without a service restart
+        h._send(json.dumps(demo_state.build()))
+    except Exception as e:
+        h._send(json.dumps({"error": str(e)}))
+
+
+def _r_state(h):
+    h._send(json.dumps(snapshot()))
+
+
+def _r_sync(h):
+    queued = request_sync()
+    h._send(json.dumps({"ok": True, "queued": queued}))
+
+
+def _r_export(h):
+    cols = ["date_ts", "date", "steps", "calories", "hr_resting", "hr_avg", "hr_max", "hr_min",
+            "spo2_avg", "spo2_max", "spo2_min", "stress_avg", "stress_max", "stress_min",
+            "standing_hours", "vitality"]
+    lines = [",".join(cols)]
+    with _lock:
+        days = list(S["days"])
+    for d in days:
+        ts = d.get("date_ts") or 0
+        date = time.strftime("%Y-%m-%d", time.localtime(ts)) if ts else ""
+        row = [str(ts), date] + [str(d.get(c, "") if d.get(c) is not None else "") for c in cols[2:]]
+        lines.append(",".join(row))
+    body = ("\n".join(lines) + "\n").encode("utf-8")
+    fname = "redmi_watch_history_%s.csv" % time.strftime("%Y%m%d")
+    h.send_response(200)
+    h.send_header("Content-Type", "text/csv; charset=utf-8")
+    h.send_header("Content-Disposition", 'attachment; filename="%s"' % fname)
+    h.send_header("Content-Length", str(len(body)))
+    h.send_header("Access-Control-Allow-Origin", "*")
+    h.end_headers()
+    h.wfile.write(body)
+
+
+def _r_data(h):
+    h._send(json.dumps(S["latest"]))
+
+
+def _r_support_js(h):
+    try:
+        with open(os.path.join(HERE, "support.js"), "r", encoding="utf-8") as f:
+            js = f.read()
+        for a, b in _VENDOR_MAP.items():
+            js = js.replace(a, b)
+        h._send(js, "application/javascript; charset=utf-8")
+    except OSError:
+        h._send("// support.js missing", "application/javascript")
+
+
+def _r_vendor(h):
+    name = os.path.basename(h.path.split("?")[0])
+    fp = os.path.join(HERE, "vendor", name)
+    if os.path.isfile(fp):
+        with open(fp, "rb") as f:
+            h._send(f.read(), "application/javascript; charset=utf-8")
+    else:
+        h.send_response(404)
+        h.end_headers()
+
+
+def _r_index(h):
+    """Default GET: serve the SPA. Registered as router's catch-all so feature
+    GET routes added later still win over it."""
+    try:
+        with open(os.path.join(HERE, "index.dc.html"), "rb") as f:
+            h._send(f.read(), "text/html; charset=utf-8")
+    except OSError:
+        h._send(PAGE, "text/html; charset=utf-8")
+
+
+router.register("POST", "/notify", _r_notify)
+router.register("POST", "/vibrate/stop", _r_vibrate_stop)
+router.register("POST", "/vibrate", _r_vibrate)
+router.register("POST", "/alarm/delete", _r_alarm_delete)
+router.register("POST", "/alarm", _r_alarm)
+router.register("GET", "/state_demo", _r_state_demo)
+router.register("GET", "/state", _r_state)
+router.register("GET", "/sync", _r_sync)
+router.register("GET", "/export", _r_export)
+router.register("GET", "/data", _r_data)
+router.register("GET", "/support.js", _r_support_js)
+router.register("GET", "/vendor/", _r_vendor)
+router.set_default_get(_r_index)
 
 
 def serve(port, host="0.0.0.0"):
-    httpd = ThreadingHTTPServer((host, port), Handler)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    return httpd
+    return router.serve(port, host)
 
 
 PAGE = r"""<!DOCTYPE html>
