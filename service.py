@@ -103,6 +103,7 @@ except OSError:
     log("another instance already running; exiting")
     sys.exit(0)
 
+dashboard.load_watch_rids()      # remember which watch reminders are ours
 dashboard.load_sleep_session()   # resume an in-flight sleep session after restart
 dashboard.LUCID["snapshot"] = sleep_engine.snapshot
 dashboard.LUCID["arm"] = sleep_engine.arm
@@ -269,6 +270,7 @@ while True:
                           on_daily=on_daily, on_sync=on_sync, on_sleep=on_sleep,
                           on_details=on_details, on_device_state=on_device_state,
                           on_hr_config=on_hr_config,
+                          on_reminder_ack=dashboard.push_reminder_ack,
                           should_sync=dashboard.take_sync_request,
                           sync_gate=dashboard.sync_allowed,
                           stream_gate=dashboard.stream_allowed,

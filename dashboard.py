@@ -541,6 +541,50 @@ def take_commands():
     return watch_io.take_commands()
 
 
+# ---- native watch reminders (todos mirror): track only the ids WE created, so
+# a re-sync deletes ours and never the user's own reminders ----
+_RID_FILE = os.path.join(os.path.dirname(_SESS_FILE), ".watch_reminders.json")
+_watch_rids = []
+
+
+def _save_watch_rids():
+    try:
+        with open(_RID_FILE, "w", encoding="utf-8") as f:
+            json.dump(_watch_rids, f)
+    except Exception:
+        pass
+
+
+def load_watch_rids():
+    global _watch_rids
+    try:
+        if os.path.exists(_RID_FILE):
+            with open(_RID_FILE, encoding="utf-8") as f:
+                _watch_rids = list(json.load(f) or [])
+    except Exception:
+        _watch_rids = []
+
+
+def push_reminder_ack(rid, sub):
+    # subtype 15 = createReminder ack (subtype 1 = alarm — ignore, not ours)
+    if sub != 15:
+        return
+    with _lock:
+        if rid not in _watch_rids:
+            _watch_rids.append(rid)
+        _save_watch_rids()
+
+
+def clear_watch_reminders():
+    """Return + forget our tracked reminder ids (caller queues the delete)."""
+    global _watch_rids
+    with _lock:
+        old = _watch_rids[:]
+        _watch_rids = []
+        _save_watch_rids()
+    return old
+
+
 def _zone_idx(hr):
     p = hr / float(MAX_HR or 190)
     if p < 0.5: return 0
@@ -711,6 +755,29 @@ def _r_alarm(h):
     h._send(json.dumps({"ok": True}))
 
 
+def _r_reminder(h):
+    # Native watch reminder (Напоминания app). Explicit y/mo/d/h/mi, or in_min
+    # minutes from now (default 10 — appears in the list without alerting yet).
+    p = h._read_json()
+    title = p.get("title", "Задача")
+    if "y" in p:
+        spec = {"kind": "reminder_create", "title": title,
+                "y": int(p["y"]), "mo": int(p["mo"]), "d": int(p["d"]),
+                "h": int(p["h"]), "mi": int(p["mi"])}
+    else:
+        lt = time.localtime(time.time() + int(p.get("in_min", 10)) * 60)
+        spec = {"kind": "reminder_create", "title": title, "y": lt.tm_year,
+                "mo": lt.tm_mon, "d": lt.tm_mday, "h": lt.tm_hour, "mi": lt.tm_min}
+    queue_command(spec)
+    h._send(json.dumps({"ok": True, "spec": spec}))
+
+
+def _r_reminder_delete(h):
+    p = h._read_json()
+    queue_command({"kind": "reminder_delete", "ids": p.get("ids")})
+    h._send(json.dumps({"ok": True}))
+
+
 # ---- GET: core (state / data / sync / export / static) ----
 def _r_state_demo(h):
     try:
@@ -795,6 +862,8 @@ router.register("POST", "/vibrate/stop", _r_vibrate_stop)
 router.register("POST", "/vibrate", _r_vibrate)
 router.register("POST", "/alarm/delete", _r_alarm_delete)
 router.register("POST", "/alarm", _r_alarm)
+router.register("POST", "/reminder/delete", _r_reminder_delete)
+router.register("POST", "/reminder", _r_reminder)
 router.register("GET", "/state_demo", _r_state_demo)
 router.register("GET", "/state", _r_state)
 router.register("GET", "/sync", _r_sync)

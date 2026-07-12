@@ -44,12 +44,25 @@ def _reorder(h):
 
 
 def _push(h):
-    """Mirror the current open todos to the watch as a notification card.
-    Manual (a 'показать на часах' action) — never auto-fired on every edit, so
-    it can't spam the wrist; the 'todos' tag dedups repeats into one buzz."""
-    title, body = engine.watch_card()
-    dashboard.queue_notification(title, body, app="Задачи", tag="todos")
-    h._send(json.dumps({"ok": True, "sent": {"title": title, "body": body}}))
+    """Mirror open todos into the watch's native Reminders app (Напоминания),
+    where they appear under 'Не завершено' — a real on-wrist checklist.
+
+    Reconcile: delete the reminders WE created last time (tracked by id, so the
+    user's own reminders are never touched), then create one per open todo.
+    Default time = tomorrow 09:00 (a task with an explicit due keeps its own)."""
+    import time as _t
+    old = dashboard.clear_watch_reminders()
+    if old:
+        dashboard.queue_command({"kind": "reminder_delete", "ids": old})
+    lt = _t.localtime(_t.time() + 86400)   # tomorrow, 09:00 default
+    open_ = [t for t in engine.all() if not t["done"]][:20]   # watch caps ~50; be gentle
+    for t in open_:
+        due = t.get("due_ts")
+        d = _t.localtime(due) if due else lt
+        dashboard.queue_command({"kind": "reminder_create", "title": t["text"],
+                                 "y": d.tm_year, "mo": d.tm_mon, "d": d.tm_mday,
+                                 "h": (d.tm_hour if due else 9), "mi": (d.tm_min if due else 0)})
+    h._send(json.dumps({"ok": True, "count": len(open_)}))
 
 
 # specific prefixes before the bare /todos list route
