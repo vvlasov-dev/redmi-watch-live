@@ -54,3 +54,17 @@ def reorder(ids):
 def open_top(n=5):
     """The top-N open todos — what a watch mirror would show."""
     return [t for t in store.todos_all() if not t["done"]][:n]
+
+
+def watch_card(n=5):
+    """(title, body) for the watch mirror. The watch's only proven persistent
+    surface is a notification card, so we render the top-N open todos as a
+    numbered list; the tag lets watch_io dedup rapid refreshes into one buzz."""
+    open_ = [t for t in store.todos_all() if not t["done"]]
+    if not open_:
+        return ("Задачи", "Список пуст — всё сделано")
+    lines = ["%d. %s" % (i + 1, t["text"]) for i, t in enumerate(open_[:n])]
+    more = len(open_) - min(n, len(open_))
+    if more > 0:
+        lines.append("... ещё %d" % more)
+    return ("Задачи (%d)" % len(open_), "\n".join(lines))

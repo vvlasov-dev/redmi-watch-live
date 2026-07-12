@@ -12,6 +12,7 @@ import time
 
 import store
 from core import router
+from core import watch_io
 from core.state import S, _lock, _SESS_FILE, _save_sleep_session  # noqa: F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -500,8 +501,6 @@ def take_sync_request():
 
 
 # ---- watch notifications queued from /notify (sent when the watch is connected) ----
-_notif_q = []
-
 # The watch font renders Latin/Cyrillic/digits/basic punctuation but NOT emoji,
 # dingbats, arrows or pictographs — those show as boxes/????. Strip them.
 import re as _re
@@ -522,36 +521,24 @@ def _watch_safe(s):
     return _re.sub(r"\s{2,}", " ", s).strip()
 
 
-def queue_notification(title, body, app="Claude Code"):
-    with _lock:
-        if len(_notif_q) < 20:
-            _notif_q.append({"title": _watch_safe(title)[:64],
-                             "body": _watch_safe(body)[:400],
-                             "app": _watch_safe(app)[:32] or "Claude Code"})
+def queue_notification(title, body, app="Claude Code", tag=None):
+    watch_io.enqueue_notification({"title": _watch_safe(title)[:64],
+                                   "body": _watch_safe(body)[:400],
+                                   "app": _watch_safe(app)[:32] or "Claude Code"},
+                                  tag=tag)
 
 
 def take_notifications():
-    with _lock:
-        out = _notif_q[:]
-        _notif_q.clear()
-        return out
+    return watch_io.take_notifications()
 
 
-# ---- device commands (vibrate / set alarm) queued from the UI ----
-_cmd_q = []
-
-
+# ---- device commands (vibrate / set alarm) — priority applied by watch_io ----
 def queue_command(spec):
-    with _lock:
-        if len(_cmd_q) < 20:
-            _cmd_q.append(spec)
+    watch_io.enqueue_command(spec)
 
 
 def take_commands():
-    with _lock:
-        out = _cmd_q[:]
-        _cmd_q.clear()
-        return out
+    return watch_io.take_commands()
 
 
 def _zone_idx(hr):
@@ -686,7 +673,7 @@ def snapshot():
                         "deep_min": s.get("deep_min"), "rem_min": s.get("rem_min"),
                         "bed_ts": s.get("bed_ts"), "wake_ts": s.get("wake_ts")}
                        for s in _merge_nights(S["sleeps"])],
-            "_notif_pending": len(_notif_q),
+            "_notif_pending": watch_io.pending()["notif"],
         }
 
 

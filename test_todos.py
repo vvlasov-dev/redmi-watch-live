@@ -56,6 +56,17 @@ check("open_top caps at n", len(engine.open_top(1)) == 1)
 engine.delete(ids[0])
 check("delete removes row", all(t["id"] != ids[0] for t in engine.all()))
 
+# watch_card: title carries the open count, body numbers the items
+title, body = engine.watch_card()
+check("watch_card title has open count", title.startswith("Задачи ("))
+check("watch_card body numbers items", body.splitlines()[0].startswith("1. "))
+
+# watch_card overflow shows a "+more" line
+for i in range(8):
+    engine.add("task %d" % i)
+_, body2 = engine.watch_card(n=5)
+check("watch_card caps at n with +more", "ещё" in body2.splitlines()[-1])
+
 print("\n%s" % ("ALL TODOS TESTS PASSED" if not FAILED else "%d TODOS TEST(S) FAILED" % FAILED))
 import sys
 sys.exit(1 if FAILED else 0)
