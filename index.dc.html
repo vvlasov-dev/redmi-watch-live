@@ -413,6 +413,8 @@ class Component extends DCLogic {
   stopVibrate(){ fetch('/vibrate/stop',{method:'POST'}).then(()=>this._flash('Сигнал остановлен')).catch(()=>this._flash('Часы недоступны')); }
   // ---- todos (PC-edited task list; mirrored to the watch on demand) ----
   _todosInit(){ if(this._ti) return; this._ti=true; this._todoPull();
+    // re-pull so watch->PC completions (done on the wrist) show without a reload
+    setInterval(()=>this._todoPull(), 12000);
     setTimeout(()=>{const i=document.getElementById('rw_todo_input');
       if(i&&!i._wired){i._wired=true;i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.todoAdd();}});}},600); }
   _todoPull(){ fetch('/todos',{cache:'no-store'}).then(r=>r.json()).then(d=>{this.TODOS=d.todos||[];this.setState({_td:Date.now()});}).catch(()=>{}); }
