@@ -4,8 +4,8 @@
 param([switch]$SkipTests)
 $ErrorActionPreference = 'Stop'
 $src = $PSScriptRoot
-$dst = 'C:\Users\L5DKA\AppData\Local\RedmiWatchLive'
-$py  = 'C:\Users\L5DKA\AppData\Local\Programs\Python\Python312\python.exe'
+$dst = "$env:LOCALAPPDATA\RedmiWatchLive"
+$py  = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
 
 # gate: never deploy protocol code that fails the regression suite
 if (-not $SkipTests) {
@@ -22,7 +22,7 @@ if (-not $SkipTests) {
 # live only in the runtime folder and are intentionally NOT overwritten.
 $code = 'activity.py','client.py','dashboard.py','service.py','notify.py','store.py',
         'miniproto.py','spp.py','xcrypto.py','index.dc.html','support.js','svc.vbs',
-        'watch_notify_hook.py','watchicon.py','watch_send.py','tray.py','tray.vbs',
+        'watchicon.py','watch_send.py','tray.py','tray.vbs',
         'morning_report.py','sleep_engine.py','demo_state.py','test_sleep_engine.py','run_tests.py',
         'requirements.txt','README.md'
 

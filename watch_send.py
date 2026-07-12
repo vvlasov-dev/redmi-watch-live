@@ -1,17 +1,15 @@
-"""Queue a watch summary that the Stop hook delivers when the turn ends.
+"""Queue a short summary to be delivered to the watch as a notification.
 
-Used by the notify-watch skill. Writing to the summary file (instead of POSTing
-directly) means the automatic Stop hook is the single delivery point — you get
-exactly one clean ping per turn, with the summary YOU wrote taking priority over
-the hook's auto-distilled fallback.
+Writes the text to a summary file that the service picks up and pushes once,
+so an external task-done trigger gets exactly one clean ping per run.
 
 Usage:  python watch_send.py "Заголовок" "Текст сводки"
-(the title is currently ignored; the hook uses a fixed short title)
 """
 import os
 import sys
 
-SUMMARY_FILE = r"C:\Users\L5DKA\AppData\Local\RedmiWatchLive\.watch_summary"
+SUMMARY_FILE = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
+                            "RedmiWatchLive", ".watch_summary")
 
 
 def main():

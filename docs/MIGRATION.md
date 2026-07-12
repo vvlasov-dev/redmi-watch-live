@@ -61,7 +61,7 @@ with a full runway. Every step: `python run_tests.py` green → deploy →
 
 ## Frontend plan (the finicky part — browser-verify each step)
 
-The HTML is a Claude Design Canvas file: one `text/x-dc` script with **shared**
+The HTML is a design-canvas HTML file: one `text/x-dc` script with **shared**
 chart builders and a **monolithic `renderVals()`**. It does NOT cut into
 per-feature JS by copy-paste. Real steps:
 

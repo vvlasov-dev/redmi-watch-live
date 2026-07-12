@@ -32,7 +32,7 @@ old imports still work. Migration status + what's left: `docs/MIGRATION.md`.
 | `activity.py` | byte-exact activity-file parsers (`parse_sleep`, `parse_sleep_stages`, daily/details) |
 | `service.py` | supervisor: startup, reconnect loop, wiring; **composition root** (imports feature route modules to register them) |
 | `miniproto.py` `spp.py` `xcrypto.py` | protobuf / V2 framing / AES-CTR+CRC primitives |
-| `tray.py` `notify.py` `watch_*` `morning_report.py` `demo_state.py` | tray, notify helpers, Stop-hook, morning report, `/demo` fixture |
+| `tray.py` `notify.py` `watch_send.py` `morning_report.py` `demo_state.py` | tray, notify helpers, watch-summary sender, morning report, `/demo` fixture |
 
 ## HTTP endpoints
 
@@ -48,7 +48,7 @@ old imports still work. Migration status + what's left: `docs/MIGRATION.md`.
 Route order matters (specific before parent); registration order = dispatch
 order. See `core/router.py` header.
 
-## Frontend (`index.dc.html` — Claude Design Canvas, monolithic)
+## Frontend (`index.dc.html` — design-canvas HTML, monolithic)
 
 Still one `text/x-dc` script: shared chart builders + monolithic `renderVals()`.
 The **todos panel** ships (card between the sleep helper and Trends: add/check/

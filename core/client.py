@@ -119,8 +119,8 @@ def build_ack_file(file_id_raw: bytes) -> bytes:
     return mp.f_varint(1, 8) + mp.f_varint(2, 5) + mp.f_message(10, health)
 
 
-def build_notification(title: str, body: str, app_name: str = "Claude Code",
-                       package: str = "ai.claude.code", nid: int = None) -> bytes:
+def build_notification(title: str, body: str, app_name: str = "RW Live",
+                       package: str = "dev.rwlive", nid: int = None) -> bytes:
     # Command{ type=7 (Notification), subtype=0 (SEND),
     #          notification.notification2.notification3{ package, appName, title, body, ts, id } }
     if nid is None:
@@ -404,7 +404,7 @@ class LiveClient:
     def _handle_icon_request(self, pixel_format, size):
         try:
             import watchicon
-            data = watchicon.convert(pixel_format, watchicon.claude_icon(size), size)
+            data = watchicon.convert(pixel_format, watchicon.app_icon(size), size)
         except Exception as e:
             log("icon convert error: %s", e)
             return
@@ -512,9 +512,9 @@ class LiveClient:
                 if self.authenticated:
                     for note in (self.take_notifications() or []):
                         try:
-                            self._send_command(build_notification(note.get("title", "Claude Code"),
+                            self._send_command(build_notification(note.get("title", "RW Live"),
                                                                    note.get("body", ""),
-                                                                   note.get("app", "Claude Code")), is_auth=False)
+                                                                   note.get("app", "RW Live")), is_auth=False)
                             log("sent watch notification: %s" % note.get("title"))
                         except Exception as e:
                             log("notify send error: %s" % e)
@@ -677,7 +677,7 @@ class LiveClient:
                 q = mp.get1(nd, 16)
                 pkg = mp.get1(mp.decode(q), 1, b"") if q else b""
                 pkg = pkg.decode("utf-8", "ignore") if isinstance(pkg, (bytes, bytearray)) else (pkg or "")
-                self._icon_pkg = pkg or "ai.claude.code"
+                self._icon_pkg = pkg or "dev.rwlive"
                 log("icon: watch queried icon for %s", self._icon_pkg)
                 self._send_command(build_icon_reply(self._icon_pkg), is_auth=False)
             elif subtype == 15:  # watch requests the icon bytes (pixelFormat + size)

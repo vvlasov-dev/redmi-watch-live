@@ -1,12 +1,10 @@
 # Conventions — Redmi Watch 5 Live
 
-Single source of truth for how we build in this repo. `CLAUDE.md` and
-`.cursor/rules/` are thin adapters that point here. Edit this file; all tools
-pick it up.
+Single source of truth for how we build in this repo.
 
-Working style is **agent-oriented**, not autocomplete: you plan, you get
-reviewed by a second optic, tests are the guardrail. Instructions set intent;
-`run_tests.py` + `deploy.ps1` enforce it.
+Working style: plan before code, get a second review, keep tests as the
+guardrail. Instructions set intent; `run_tests.py` + `deploy.ps1` +
+`hooks/pre-commit` enforce it.
 
 ---
 
@@ -33,7 +31,7 @@ Keep changes inside the right layer; don't smear protocol logic into the UI.
 | `dashboard.py` | In-memory state, HTTP server, the `/state` model | The single place that shapes what the UI sees. Merge, don't overwrite. |
 | `sleep_engine.py` | Pure `decide()` core + 30s tick loop (lucid cues, smart wake, auto-night) | `decide()` stays PURE and unit-tested. Side effects live in `_tick`. |
 | `store.py` | SQLite persistence (days/sleep forever, minutes 90d, samples 14d) | Aggregates are permanent; only raw high-freq data is pruned. |
-| `index.dc.html` | Claude Design Canvas frontend (`{{ }}` bindings, `renderVals()`) | No logic in markup. See §6 for canvas traps. |
+| `index.dc.html` | design-canvas HTML frontend (`{{ }}` bindings, `renderVals()`) | No logic in markup. See §6 for canvas traps. |
 | `service.py` | Supervisor: hardened startup, reconnect loop, wiring | Never let the process hard-die; catch all in the reconnect loop. |
 
 ## 3. Data honesty (the core principle of this project)
@@ -72,7 +70,7 @@ not by reading code. Do the same:
 - **Never restart the service during a live sleep session.** Deploy HTML-only,
   or wait. A restart mid-night loses the running estimate window.
 
-## 6. Frontend (Claude Design Canvas) rules
+## 6. Frontend (design-canvas HTML) rules
 
 - Bindings are `{{ }}` resolved in `renderVals()`. Compute in JS, bind values.
 - **No controlled-input trap:** don't set `value=` on `<input>` without an
@@ -101,24 +99,18 @@ not by reading code. Do the same:
 
 ## 9. Review by a second optic
 
-Don't let the author review the author. Use `/review` (adversarial reviewer
-subagent) before merging anything non-trivial — its job is to break the change
-against this project's known failure modes (data-honesty, byte-exact parsing,
-engine edge cases, night-safety), not to praise it.
+Don't let the author review the author. Get an adversarial second review before
+merging anything non-trivial — its job is to break the change against this
+project's known failure modes (data-honesty, byte-exact parsing, engine edge
+cases, night-safety), not to praise it.
 
-## 10. Working agentically on this repo (setup)
+## 10. Working on this repo (setup)
 
-The workflow only auto-loads when the agent's working directory is this repo.
-
-- **Start the session from the project root** — run `dev.bat` (or launch Claude
-  Code / Cursor with the project folder open). Only then do `CLAUDE.md`,
-  `/plan`, `/review`, `.cursor/rules`, and the reviewer subagent apply.
-  Launching from elsewhere loads only the global `~/.claude` config.
-- **The loop:** `/plan` → confirm → build → `python run_tests.py` → `/review` →
-  fix → run the Definition of Done checklist (§7) → commit.
 - **Enforcement (opt-in):** `git config core.hooksPath hooks` installs the
   `pre-commit` guard that blocks a commit while tests are red. `deploy.ps1`
-  already gates deploys on the same suite. Instructions ask; hooks + CI enforce.
+  gates deploys on the same suite. Instructions ask; hooks enforce.
+- **The loop:** plan → build → `python run_tests.py` → second review → run the
+  Definition of Done checklist (§7) → commit.
 - **Deploy safely:** HTML-only changes → copy `index.dc.html` to the runtime
   dir (no restart). Python changes → `deploy.ps1`. **Never restart during a
   live sleep session** (§5).

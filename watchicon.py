@@ -1,4 +1,4 @@
-"""Generate a Claude notification icon and convert it to the watch's pixel formats.
+"""Generate the app notification icon and convert it to the watch's pixel formats.
 
 Pixel-format conversions are byte-exact ports of Gadgetbridge's XiaomiBitmapUtils
 (they replicate its bit math from a packed 0xAARRGGBB int, quirks and all, so the
@@ -17,12 +17,12 @@ PF_ARGB8888_LE = 3
 PF_ARGB8565_LE = 7
 PF_ABGR8565_LE = 8
 
-CORAL = (204, 120, 92, 255)   # Claude warm coral
+CORAL = (204, 120, 92, 255)   # warm coral
 WHITE = (255, 255, 255, 255)
 
 
-def claude_icon(size: int) -> Image.Image:
-    """A coral tile with a white radial sunburst — the Claude mark, at `size`px."""
+def app_icon(size: int) -> Image.Image:
+    """A coral tile with a white radial sunburst — the app mark, at `size`px."""
     s = max(size, 8)
     ss = s * 4  # supersample for smooth edges
     img = Image.new("RGBA", (ss, ss), CORAL)
@@ -87,9 +87,9 @@ def convert(pixel_format: int, img: Image.Image, size: int) -> bytes:
 
 if __name__ == "__main__":  # quick offline check
     for sz in (32, 48):
-        ic = claude_icon(sz)
+        ic = app_icon(sz)
         for pf, bpp in ((PF_RGB565_LE, 2), (PF_ARGB8888_LE, 4), (PF_ARGB8565_LE, 3)):
             data = convert(pf, ic, sz)
             assert len(data) == sz * sz * bpp, (pf, len(data))
-        ic.save("claude_icon_%d.png" % sz)
+        ic.save("app_icon_%d.png" % sz)
     print("watchicon OK (formats + sizes match)")

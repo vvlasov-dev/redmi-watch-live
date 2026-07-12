@@ -526,10 +526,10 @@ def _watch_safe(s):
     return _re.sub(r"\s{2,}", " ", s).strip()
 
 
-def queue_notification(title, body, app="Claude Code", tag=None):
+def queue_notification(title, body, app="RW Live", tag=None):
     watch_io.enqueue_notification({"title": _watch_safe(title)[:64],
                                    "body": _watch_safe(body)[:400],
-                                   "app": _watch_safe(app)[:32] or "Claude Code"},
+                                   "app": _watch_safe(app)[:32] or "RW Live"},
                                   tag=tag)
 
 
@@ -757,7 +757,7 @@ def snapshot():
 # ---- POST: watch-io (notify / vibrate / alarm) — becomes core/watch_io in a later step ----
 def _r_notify(h):
     p = h._read_json()
-    queue_notification(p.get("title", "Claude Code"), p.get("body", ""), p.get("app", "Claude Code"))
+    queue_notification(p.get("title", "RW Live"), p.get("body", ""), p.get("app", "RW Live"))
     h._send(json.dumps({"ok": True}))
 
 

@@ -25,3 +25,15 @@ __pycache__/
 # captures/*.bin are real-hardware test fixtures (~57KB), KEPT so parser tests
 # run on a fresh clone. They hold a few real HR/sleep bytes — sanitize or drop
 # before making the repo public if that matters.
+
+# real-hardware biometric captures — kept locally, not published
+captures/*.bin
+
+# AI-assistant tooling config (not part of the software)
+.claude/
+.cursor/
+CLAUDE.md
+
+# Claude Code tool integration (local only)
+dev.bat
+watch_notify_hook.py

@@ -1,7 +1,7 @@
 # Show whether the running deploy matches the source, and service health.
 # Usage:  powershell -ExecutionPolicy Bypass -File status.ps1
 $src = $PSScriptRoot
-$dst = 'C:\Users\L5DKA\AppData\Local\RedmiWatchLive'
+$dst = "$env:LOCALAPPDATA\RedmiWatchLive"
 $code = 'activity.py','client.py','dashboard.py','service.py','notify.py','store.py',
         'miniproto.py','spp.py','xcrypto.py','index.dc.html','support.js','svc.vbs'
 
