@@ -1,5 +1,13 @@
 # MIGRATION — layered → vertical feature slices
 
+> **Status (2026-07-12): backend refactor DONE + first feature shipped.**
+> ✅ 1 state · ✅ 2 store · ✅ 3 client+sleep-engine · ✅ 4 router split ·
+> ✅ 5 watch_io arbiter · ✅ `features/todos/` backend (CRUD + watch mirror).
+> **Remaining: the frontend split + the todos panel (browser-in-loop, daytime).**
+> Everything below the frontend section is history/plan; the backend plan is
+> complete and deployed. 5 test suites green.
+
+
 **Goal:** restructure so each feature (sleep, todos, workouts, audio…) is a
 self-contained folder, and the fragile shared plumbing lives in a thin `core/`
 that features register into but never edit. Driver: **editing one feature must

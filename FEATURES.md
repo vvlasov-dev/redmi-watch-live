@@ -1,59 +1,65 @@
 # FEATURES — code map (read this first to orient)
 
-One-screen map of the codebase so a change can be located without grepping the
-whole tree. Structure today is **layered** (one big `dashboard.py` + one
-`index.dc.html`); `docs/MIGRATION.md` describes the move to **vertical feature
-slices** (`core/` + `features/`) that makes each edit touch a small folder.
+One-screen map so a change can be located without grepping the tree. The
+structure is now **vertical slices**: fragile shared plumbing in `core/`,
+each feature a self-contained folder in `features/`. Editing one feature touches
+a small folder, not the old 50 KB `dashboard.py`. Top-level `client.py`,
+`store.py`, `sleep_engine.py` are thin **shims** re-exporting the moved code, so
+old imports still work. Migration status + what's left: `docs/MIGRATION.md`.
 
-## Backend files
+## core/ — shared plumbing (features register into it, never edit it)
 
 | File | Role | Key entry points |
 |---|---|---|
-| `client.py` | BT SPP protocol state machine, frame build/parse, run loop | `build_gentle_cue`, `build_notification`, `build_hr_config_*`, `_send_device_command`, realtime re-arm |
-| `activity.py` | Byte-exact activity-file parsers | `parse_sleep`, `parse_sleep_stages`, `is_sleep_stages`, daily/details parsers |
-| `dashboard.py` | In-memory state `S` + HTTP server + `/state` model + all routes | `push_sleep`, `push_details`, `finalize_night`, `_merged_night`, `start/stop_sleep_session`, `queue_command`, request handler |
-| `sleep_engine.py` | Sleep/lucid engine: pure `decide()` + 30s `_tick` | `decide`, `_wake_ok_phase`, `_wake_tick`, `_auto_tick`, `_daycue_tick`, `night_estimate`, `restore`, `arm` |
-| `store.py` | SQLite persistence (days/sleep forever, minutes 90d, samples 14d) | `upsert_sleep`, `upsert_daily`, `upsert_minutes`, `load_minutes` |
-| `service.py` | Supervisor: hardened startup, reconnect loop, wiring | `_health_monitor`, keep-awake, `on_hr_config` |
-| `miniproto.py` `spp.py` `xcrypto.py` | Protobuf / V2 framing / AES-CTR + CRC crypto | protocol primitives |
-| `tray.py` `notify.py` `watch_*` `morning_report.py` `demo_state.py` | Tray app, notify helpers, Stop-hook, morning report, `/demo` fixture | peripheral |
+| `core/state.py` | in-memory state `S` + `_lock` + session persistence | `S`, `_lock`, `_save_sleep_session` |
+| `core/store.py` | SQLite (days/sleep forever, minutes 90d, samples 14d, todos) | `upsert_sleep/daily/minutes`, `load_*`, `todos_*` |
+| `core/client.py` | BT SPP protocol state machine, frame build/parse, run loop | `build_*` builders, `_send_device_command`, realtime re-arm |
+| `core/router.py` | HTTP route registry + Handler dispatch (first-prefix-wins) | `register`, `set_default_get`, `serve` |
+| `core/watch_io.py` | single BT-output arbiter: priority + tag-dedup + cap | `enqueue_command/notification`, `take_*`, `_infer_pri` |
 
-## HTTP endpoints (all in `dashboard.py` today)
+## features/ — vertical slices
+
+| Slice | Files | What |
+|---|---|---|
+| `features/sleep/` | `engine.py` · `routes.py` | lucid cues, smart wake, auto-night, daycue; `/sleep`,`/lucid`,`/cue`,`/health` |
+| `features/todos/` | `engine.py` · `routes.py` | PC task list + watch mirror; `/todos/*` |
+
+## app assembly (still in dashboard.py for now)
+
+| File | Role |
+|---|---|
+| `dashboard.py` | `/state` model (`snapshot`), push_* ingest, sleep session control, core+watch-io routes, serve() → router |
+| `activity.py` | byte-exact activity-file parsers (`parse_sleep`, `parse_sleep_stages`, daily/details) |
+| `service.py` | supervisor: startup, reconnect loop, wiring; **composition root** (imports feature route modules to register them) |
+| `miniproto.py` `spp.py` `xcrypto.py` | protobuf / V2 framing / AES-CTR+CRC primitives |
+| `tray.py` `notify.py` `watch_*` `morning_report.py` `demo_state.py` | tray, notify helpers, Stop-hook, morning report, `/demo` fixture |
+
+## HTTP endpoints
 
 | Path | Does | Feature |
 |---|---|---|
-| `/state` | full UI model (live) | core |
-| `/state_demo` `/data` `/export` | demo fixture / raw / backup | core |
-| `/sync` | force a data sync | core |
-| `/sleep/start` `/sleep/stop` | session control (+ `finalize_night` on stop) | sleep |
-| `/lucid/on` `/lucid/off` | arm/disarm lucid master | sleep |
-| `/cue` | queue one gentle buzz | sleep |
-| `/notify` | push a notification to the watch | watch-io |
-| `/vibrate` `/vibrate/stop` | find-device siren on/off | watch-io |
-| `/alarm` `/alarm/delete` | create/clear a hardware alarm | watch-io |
-| `/health/hrcfg_get` `/health/advanced_on` | HR/REM config | sleep |
-| `/support.js` `/vendor/*` | static assets | frontend |
+| `GET /state` `/state_demo` `/data` `/export` `/sync` | UI model / demo / raw / CSV / force-sync | core (dashboard) |
+| `POST /notify` `/vibrate*` `/alarm*` | notification / find-device / hardware alarm | watch-io (dashboard) |
+| `POST /sleep/start` `/sleep/stop` | session control (+ finalize on stop) | sleep |
+| `POST /lucid/on` `/lucid/off` `/cue` | lucid master / manual cue | sleep |
+| `POST /health/hrcfg_get` `/health/advanced_on` | HR/REM config | sleep |
+| `GET /todos` · `POST /todos/{add,toggle,edit,delete,reorder,push}` | task CRUD + watch mirror | todos |
 
-## Frontend (`index.dc.html`, 1146 lines — Claude Design Canvas)
+Route order matters (specific before parent); registration order = dispatch
+order. See `core/router.py` header.
 
-- `<style>` 14–46 — theme/CSS.
-- markup 47–355 — cards, each fenced by an HTML comment: HERO HR, activity
-  rings, stats band, insights, HR-by-hour, HR zones, steps, stress, SpO2,
-  alarm+vibrate, sleep helper, trends (7д/30д/12м), sleep section.
-- `text/x-dc` script 356–1144 — **one render object**: shared chart builders
-  (`mkArea mkBars mkRings mkStack mkHypno mkZigPack mkSleepWave mkHrRanges
-  mkDayDots`) + the monolithic `renderVals()` that computes every panel and sets
-  the `*El` bindings. NOTE: builders are shared and `renderVals` is one function,
-  so per-feature splitting is a refactor, not a cut — see `docs/MIGRATION.md`.
+## Frontend (`index.dc.html` — Claude Design Canvas, monolithic)
 
-## Feature → where its code lives today
+Still one `text/x-dc` script: shared chart builders + monolithic `renderVals()`.
+The per-feature split (`app/shell.html` + `renderVals` → `render<Feature>()`)
+and the **todos panel** are the remaining frontend work — needs a browser in the
+loop (see `docs/MIGRATION.md`). No todos UI yet; the backend is done and
+reachable at `/todos`.
 
-- **sleep/lucid**: `sleep_engine.py` (all) · `activity.py` sleep parsers ·
-  `dashboard.py` `push_sleep`/`finalize_night`/`_merged_night`/session +
-  `/sleep/*` `/lucid/*` `/cue` `/health/*` · sleep + trends cards in the HTML.
-- **activity/HR/steps/stress/spo2**: `activity.py` daily/details ·
-  `dashboard.py` `push_details` + `/state` · HERO/rings/stats/HR/steps cards.
-- **watch-io (shared output)**: `client.py` command builders +
-  `_send_device_command` · `dashboard.queue_command` · `/notify` `/vibrate*`
-  `/alarm*`. Candidate to become `core/watch_io.py` (priority arbiter).
-- **todos** (planned): none yet — first new vertical slice.
+## Not built / blocked
+
+- **audio capture** — infeasible on this watch (SPP has no audio surface, mic is
+  call-only HFP). Full reasoning + source-agnostic alternative:
+  `docs/AUDIO_SPIKE.md`.
+- **workouts** — needs a recorded workout `.bin` capture first (backlog #18),
+  then `features/workouts/` parser + panel + AI-analysis endpoint.
