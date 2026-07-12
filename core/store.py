@@ -35,10 +35,77 @@ def init(path):
         CREATE TABLE IF NOT EXISTS minutes(
             ts INTEGER PRIMARY KEY, hr INTEGER, steps INTEGER, cal INTEGER,
             spo2 INTEGER, stress INTEGER);
+        CREATE TABLE IF NOT EXISTS todos(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL,
+            done INTEGER DEFAULT 0, ord INTEGER DEFAULT 0,
+            created_ts INTEGER, done_ts INTEGER);
         """
     )
     _db.commit()
     return _db
+
+
+# ---------- todos (PC-edited task list, mirrored to the watch) ----------
+def todos_all():
+    if _db is None:
+        return []
+    with _lock:
+        cur = _db.execute(
+            "SELECT id,text,done,ord,created_ts,done_ts FROM todos ORDER BY done, ord, id")
+        rows = cur.fetchall()
+    return [{"id": r[0], "text": r[1], "done": bool(r[2]), "ord": r[3],
+             "created_ts": r[4], "done_ts": r[5]} for r in rows]
+
+
+def todos_add(text, ord=None):
+    """Insert a new open todo at the given order (default: end). Returns its id."""
+    if _db is None:
+        return None
+    now = int(time.time())
+    with _lock:
+        if ord is None:
+            row = _db.execute("SELECT COALESCE(MAX(ord),0)+1 FROM todos").fetchone()
+            ord = row[0] if row else 0
+        cur = _db.execute(
+            "INSERT INTO todos(text,done,ord,created_ts) VALUES(?,0,?,?)",
+            (text, int(ord), now))
+        _db.commit()
+        return cur.lastrowid
+
+
+def todos_set_done(tid, done):
+    if _db is None:
+        return
+    with _lock:
+        _db.execute("UPDATE todos SET done=?, done_ts=? WHERE id=?",
+                    (1 if done else 0, int(time.time()) if done else None, int(tid)))
+        _db.commit()
+
+
+def todos_edit(tid, text):
+    if _db is None:
+        return
+    with _lock:
+        _db.execute("UPDATE todos SET text=? WHERE id=?", (text, int(tid)))
+        _db.commit()
+
+
+def todos_delete(tid):
+    if _db is None:
+        return
+    with _lock:
+        _db.execute("DELETE FROM todos WHERE id=?", (int(tid),))
+        _db.commit()
+
+
+def todos_reorder(ids):
+    """Persist a new open-list order: ids in the desired top-to-bottom order."""
+    if _db is None or not ids:
+        return
+    with _lock:
+        _db.executemany("UPDATE todos SET ord=? WHERE id=?",
+                        [(i, int(tid)) for i, tid in enumerate(ids)])
+        _db.commit()
 
 
 def add_sample(ts, hr, steps, cal):
