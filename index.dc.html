@@ -682,6 +682,7 @@ class Component extends DCLogic {
 
   renderVals(){
     const page=this.state.page;
+    const titles={overview:'Обзор'};   // single-page; multi-page nav was removed
     // live overrides
     this._liveInit();
     this._todosInit();
